@@ -1,0 +1,10 @@
+{
+	"name": "mvbot",
+	"version": "0.0.1",
+	"description": "move posts from one channel to another",
+	"main": "mvbot.js",
+	"author": "manitee",
+	"dependencies": {
+		"discord.js": "^12.2.0"
+	}
+}
