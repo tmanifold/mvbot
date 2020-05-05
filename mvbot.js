@@ -123,7 +123,7 @@ bot.on('message', message => {
                 urls += a.url + '\n';
             });
 
-            embed.addField('#' + message.channel.name, (msg.content === '' ? urls : msg.content));
+            embed.addField('#' + message.channel.name, (msg.content == '' ? urls : msg.content));
 
                 //target_channel.send(embed);
             

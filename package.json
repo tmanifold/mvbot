@@ -1,10 +1,13 @@
 {
 	"name": "mvbot",
 	"version": "0.0.1",
-	"description": "move posts from one channel to another",
+	"description": "Move posts from one discord channel to another",
 	"main": "mvbot.js",
-	"author": "manitee",
+	"author": "Tyler Manifold",
 	"dependencies": {
 		"discord.js": "^12.2.0"
+	},
+	"scripts": {
+		"start": "node mvbot.js"
 	}
 }
