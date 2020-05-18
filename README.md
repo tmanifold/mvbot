@@ -9,7 +9,7 @@ Syntax:
 !mv <message-id> <target-channel> ["reason"]
 ```
 The three arguments are as follows:
-  - *message-id*: The message ID can be obtained by right-clicking a message and selecting "Copy ID". Note: You will need to [enable developer mode](https://discordia.me/en/developer-mode).
+  - *message-id*: The Message Link (right-click -> Copy Message Link) or Message ID. Note:  You will need to [enable developer mode](https://discordia.me/en/developer-mode) to use Message ID.
   - *target-channel*: Channels can be referenced by the standard #<channel-name>.
   - *reason (optional)*: Can be left blank, or provide a reason why the message is being moved. Must be enclosed in double-quotes.
   
