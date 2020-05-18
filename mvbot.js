@@ -1,5 +1,6 @@
 const {Client, MessageEmbed} = require('discord.js')
 const Auth = require('./auth.json')
+const pkg_info = require('./package.json')
 
 var bot = new Client();
 
@@ -10,7 +11,14 @@ function usage(channel) {
 
 bot.on('ready', () => {
 
-    console.log('mvbot ready!\n');
+    bot.user.setPresence({
+        activity: {
+            name: 'ver. ' + pkg_info.version
+        },
+        status: 'online'
+    }).then(console.log).catch(console.error);
+
+    // console.log('mvbot ready!\n');
 });
 
 bot.on('message', message => {
@@ -28,7 +36,17 @@ bot.on('message', message => {
             return;
         }
 
-        message.channel.messages.fetch(args[1]).then(msg => {
+        var target_message = '';
+
+        if (args[1].search(/^(https:\/\/discordapp.com\/channels\/)/) >= 0) {
+            // The target is given by url
+            target_message = args[1].substring(args[1].lastIndexOf('/') + 1);
+        } else {
+            // assume a message id is given
+            target_message = args[1];
+        }
+
+        message.channel.messages.fetch(target_message).then(msg => {
 
             if (!message.member.hasPermission("MANAGE_MESSAGES")) {
                 
@@ -42,31 +60,47 @@ bot.on('message', message => {
                         .replace(/>/, '')
                         );
 
-            var embed = new MessageEmbed();
-
-            // determine if the msg was posted by the bot itself
-            if (msg.author.tag == bot.user.tag) {
-
-                if (msg.embeds.length > 0) {
-                    embed = new MessageEmbed(msg.embeds[0]);
-
-                    msg.attachments.forEach( element => {
-                        embed.attachFiles(element);
-                    });
-
-                    target_channel.send(embed);
-
-                    return;
-                }
+            if (!target_channel) {
+                message.channel.send('The target channel doesn\'t exist!');
+                usage(message.channel);
+                return;
             }
 
-            embed.setAuthor(message.author.username, message.author.avatarURL())
-            //.setTitle('#' + message.channel.name)
-            .setDescription(message.createdAt)
-            .setFooter('Moved by @' + message.member.displayName + ' with mvbot.' 
-                + (args[3] == null ? '' : ' Reason: ' + message.content.split('\"', 2)[1]))
-            .setTimestamp(new Date());
+            var bot_embed = new MessageEmbed();
+
+            // determine if the msg was posted by the bot itself
+            // if (msg.author.tag == bot.user.tag) {
+
+            //     if (msg.embeds.length > 0) {
+            //         embed = new MessageEmbed(msg.embeds[0]);
+
+            //         msg.attachments.forEach( element => {
+            //             embed.attachFiles(element);
+            //         });
+
+            //         target_channel.send(embed);
+            //         msg.delete();
+
+            //         return;
+            //     }
+            // }
+
+            var mvstr = '<@' + msg.member + '> | <#' + message.channel + '>\n';
+            mvstr += message.createdAt + '\n';
+            mvstr += (args[3] == null) ? '' : '*\"' + message.content.split('\"', 2)[1] + '\"*';
+            mvstr += ' - <@' + message.member + '>\n\n';
+            var embeds = [];
+            var attachments = [];
+
+            // bot_embed.setAuthor(message.author.username, message.author.avatarURL())
+            // //.setTitle('#' + message.channel.name)
+            // .setDescription(message.createdAt)
+            // .setFooter('Moved by @' + message.member.displayName + ' with mvbot.' 
+            //     + (args[3] == null ? '' : ' Reason: ' + message.content.split('\"', 2)[1]))
+            // .setTimestamp(new Date());
             
+            var urls = '';
+
             if (msg.embeds.length > 0) {
                 
                 //console.log(msg.embeds);
@@ -75,38 +109,25 @@ bot.on('message', message => {
 
                 msg.embeds.forEach( element => {
 
-                    switch (element.type)
-                    {
-                        // case 'rich':
-                        //     break;
-                        case 'image':
-                            embed.attachFiles(element.url);
-                            break;
-                        case 'video':
-                            break;
-                        case 'gifv':
-                            embed.setImage(element.url);
-                            break;
-                        // case 'article':
-                        //     break;
-                         case 'link':
-                            break;
-                        default:
-                            embed.attachFiles(element.url);
-                            break;
-                    }
+                    console.log(element);
+                    embeds.push(element);
+                  // urls += element.url + '\n';
 
-                    //console.log(element);
                 }, err => {
                     console.log(err);
-                });                
+                });    
+                
+                // embeds.push(bot_embed);
 
             } else {
 
                 if (msg.attachments.size > 0) {
 
                     msg.attachments.each(a => {
-                        embed.attachFiles(a);
+                        console.log(a);
+                        attachments.push(a.url);
+
+                        //urls += a.url + '\n';
                     });
                     //embed.setImage(msg.attachments.first().attachment);
                 }  
@@ -116,19 +137,28 @@ bot.on('message', message => {
 
 
                 //embed.addField(' ', message.content);
-            var urls = '';
+            // var urls = '';
 
-            msg.attachments.forEach( a => {
+            // msg.attachments.forEach( a => {
 
-                urls += a.url + '\n';
-            });
+            //     urls += a.url + '\n';
+            // });
 
-            embed.addField('#' + message.channel.name, (msg.content == '' ? urls : msg.content));
+      
 
                 //target_channel.send(embed);
+
             
             
-            target_channel.send(embed);
+            target_channel.send(msg.content == '' ? mvstr :  mvstr + '>>> ' + msg.content, {
+                files: attachments,
+                embeds: embeds
+            });
+
+            // if (msg.content) {
+            //     target_channel.send(msg.content);
+            // }
+            // target_channel.send(embed);
 
            msg.delete();
         }, () => {
@@ -142,4 +172,4 @@ bot.on('error', err => {
     console.log(err);
 });
 
-bot.login(Auth.bot_token);
+bot.login(Auth.dev_token);
