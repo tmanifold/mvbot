@@ -172,4 +172,4 @@ bot.on('error', err => {
     console.log(err);
 });
 
-bot.login(Auth.dev_token);
+bot.login(Auth.bot_token);
