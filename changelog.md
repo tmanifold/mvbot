@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.1] - 2020-11-02
+### Changed
+- The invoking command message is now deleted.
+
 ## [0.1.0] - 2020-05-17
 ### Added
 - Ability to reference message by its link

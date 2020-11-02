@@ -23,7 +23,6 @@ bot.on('ready', () => {
 
 bot.on('message', message => {
 
-
     if (message.content.startsWith('!mv')) {
 
         args = message.content.split(' ');
@@ -38,7 +37,7 @@ bot.on('message', message => {
 
         var target_message = '';
 
-        if (args[1].search(/^(https:\/\/discordapp.com\/channels\/)/) >= 0) {
+        if (args[1].search(/^(https:\/\/discord.com\/channels\/)/) >= 0) {
             // The target is given by url
             target_message = args[1].substring(args[1].lastIndexOf('/') + 1);
         } else {
@@ -53,7 +52,6 @@ bot.on('message', message => {
                 message.channel.send('Sorry, ' + message.member.displayName + '. I can\'t let you do that.');
                 return;
             }
-
                         
             target_channel = bot.channels.resolve(
                 args[2].replace(/<#/, '')
@@ -66,25 +64,6 @@ bot.on('message', message => {
                 return;
             }
 
-            var bot_embed = new MessageEmbed();
-
-            // determine if the msg was posted by the bot itself
-            // if (msg.author.tag == bot.user.tag) {
-
-            //     if (msg.embeds.length > 0) {
-            //         embed = new MessageEmbed(msg.embeds[0]);
-
-            //         msg.attachments.forEach( element => {
-            //             embed.attachFiles(element);
-            //         });
-
-            //         target_channel.send(embed);
-            //         msg.delete();
-
-            //         return;
-            //     }
-            // }
-
             var mvstr = '<@' + msg.member + '> | <#' + message.channel + '>\n';
             mvstr += message.createdAt + '\n';
             mvstr += (args[3] == null) ? '' : '*\"' + message.content.split('\"', 2)[1] + '\"*';
@@ -92,32 +71,17 @@ bot.on('message', message => {
             var embeds = [];
             var attachments = [];
 
-            // bot_embed.setAuthor(message.author.username, message.author.avatarURL())
-            // //.setTitle('#' + message.channel.name)
-            // .setDescription(message.createdAt)
-            // .setFooter('Moved by @' + message.member.displayName + ' with mvbot.' 
-            //     + (args[3] == null ? '' : ' Reason: ' + message.content.split('\"', 2)[1]))
-            // .setTimestamp(new Date());
             
-            var urls = '';
-
             if (msg.embeds.length > 0) {
-                
-                //console.log(msg.embeds);
-
-                // loop through embeds and process them base on their .type
 
                 msg.embeds.forEach( element => {
 
                     console.log(element);
                     embeds.push(element);
-                  // urls += element.url + '\n';
 
                 }, err => {
                     console.log(err);
                 });    
-                
-                // embeds.push(bot_embed);
 
             } else {
 
@@ -126,41 +90,17 @@ bot.on('message', message => {
                     msg.attachments.each(a => {
                         console.log(a);
                         attachments.push(a.url);
-
-                        //urls += a.url + '\n';
                     });
-                    //embed.setImage(msg.attachments.first().attachment);
                 }  
             }
 
-            //console.log(args);
-
-
-                //embed.addField(' ', message.content);
-            // var urls = '';
-
-            // msg.attachments.forEach( a => {
-
-            //     urls += a.url + '\n';
-            // });
-
-      
-
-                //target_channel.send(embed);
-
-            
-            
             target_channel.send(msg.content == '' ? mvstr :  mvstr + '>>> ' + msg.content, {
                 files: attachments,
                 embeds: embeds
             });
 
-            // if (msg.content) {
-            //     target_channel.send(msg.content);
-            // }
-            // target_channel.send(embed);
-
-           msg.delete();
+           msg.delete(); // delete message to be moved.
+           message.delete(); // delete invoking message
         }, () => {
             message.channel.send('I was unable to find the message you want to move. Ensure you are entering a valid message ID.');
         });
