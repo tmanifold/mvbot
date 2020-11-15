@@ -89,7 +89,7 @@ bot.on('message', message => {
 
                     msg.attachments.each(a => {
                         console.log(a);
-                        attachments.push(a.url);
+                        attachments.push(a.proxyURL);
                     });
                 }  
             }
@@ -101,6 +101,7 @@ bot.on('message', message => {
 
            msg.delete(); // delete message to be moved.
            message.delete(); // delete invoking message
+
         }, () => {
             message.channel.send('I was unable to find the message you want to move. Ensure you are entering a valid message ID.');
         });

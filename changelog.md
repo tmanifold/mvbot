@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.2] - 2020-11-15
+### Fixed
+- A bug that caused attached images to not be moved correctly
+
 ## [0.1.1] - 2020-11-02
 ### Changed
 - The invoking command message is now deleted.
