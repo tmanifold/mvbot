@@ -1,5 +1,7 @@
 # mvbot
 
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/tmanifold?locale.x=en_US)
+
 A simple bot to move messages from one discord channel to another.
 
 [Invite mvbot](https://discordapp.com/api/oauth2/authorize?client_id=706927667043237928&permissions=125952&scope=bot)
