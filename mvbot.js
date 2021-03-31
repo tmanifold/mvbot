@@ -12,7 +12,7 @@ var bot = new Client();
 */
 function usage(channel) {
 
-    channel.send('usage:\n `!mv <message-id> <target channel> ["reason"]`').catch(console.log);
+    channel.send('usage:\n `!mv <message-id> <target channel> ["reason"]`');
 }
 
 /*
@@ -30,7 +30,7 @@ function errorMessage(channel, message) {
 
 /*
     parseOption: Parse an option from the given command. Returns substring of args
-                from startidx to indexOf(endchar)
+                 from startidx to indexOf(endchar)
     parameters:
         args (String): argument string to parse
         startidx (int): staring index to begin parsing
@@ -50,99 +50,112 @@ function parseOption(args, startidx, endchar) {
         cmd (Message): The command from which to extract arguments
     return: A Map of the options and their values
 */
-function getopts (cmd) {
+function getopts(cmd) {
 
-    // remove the !mv invocation from the command string
-    var args = cmd.content.slice(4);
+    // split command-string at switch indices
+    var args = cmd.content.split(/\s+-.\s*/g);
 
+    // pop command prefix from array
+    args.shift();
     //console.log(args);
 
-    var message = ''; // target message
-    var destination = ''; // destination chanenel
-    var comment = ''; // move comment
-    var numMessages = 1;  // number of messges to move
+    // get array of switches from the command-string
+    // /--(\w)+(-(\w)+)*/ matches long-form switches, ex., --no-header or --help
+    // /-./ matches a short-form switch, ex., -m
+    var switches = cmd.content.match(/(--(\w)+(-(\w)+)*)|(-.)/g);
+    //console.log(switches);
 
-    // get the indexOf to find start indices of options
-    var m = args.indexOf('-m');
-    var d = args.indexOf('-d');
-    var c = args.indexOf('-c');
-    var n = args.indexOf('-n');
-    var N = args.indexOf('-N');
+    if (!args || !switches) {
+        return null;
+    }
 
+    // construct the map
+    var opts = new Map();
+
+    for (i in switches) {
+        opts.set(switches[i], args[i]);
+    }
+
+    return opts;
+}
+
+/*
+    validateArgs: validates the given map of arguments
+    parameters:
+        args (Map): a map of switches and their corresponding values
+    return: an error code correspondng to the argument that failed
+    validation. 0 if no errors
+
+    switches:
+        -m      the message id(s) to be moved
+        -d      the destination channel
+        -c      a comment explaining why the message was moved (optional)
+        -n      the number of messages to be moved
+        -t      the timespan in minutes
+
+
+    Compatibility matrix
+      m d n t r
+    m - 1 1 0
+    d 1 - 1 1
+    n 1 1 - 0
+    t 0 1 0 -
+    r 1       -
+
+    Error codes:
+    11   -t and -m are mutually exclusive
+    12   -m or -t not specified
+    13   -d not specified
+    14   value of -n or -t is NaN
+*/
+function validateArgs (args) {
+
+    has_m = args.has('-m');
+    has_d = args.has('-d');
+    has_n = args.has('-n');
+    has_t = args.has('-t');
+
+    // // validate switch compatibility
+    // var compat  = has_m << 3;
+    //     compat |= has_d << 2;
+    //     compat |= has_n << 1;
+    //     compat |= has_t;
+    //
+    // console.log(compat);
+
+    // enforce mutual exclusion: -m and -t are both present or -t and -n are both present
+    if ((has_t && has_m) || (has_t && has_n)) {
+        return 11;
+    }
+    // a messageId list was given along with -n option
+    if (has_n && args.get('-m').split(' ').length > 1) {
+        return 11;
+    }
+    // a message or range of messages was not specified: missing both -m and -t
+    if (!has_t && !has_m)  {
+        return 12;
+    }
     // check if the target message and destination are specified
-    if (m == -1 || d == -1) {
-
-        cmd.channel.send('Invalid arguments: message and destination must be specified.').catch(console.error);
-        usage(cmd.channel);
-        //errorMessage(cmd.channel, 'Invalid arguments: message and destination must be specified.');
-        return;
+    if (!has_d) {
+        return 13;
     }
 
-    // add 3 characters to offset for switch width and whitespace
-    m += 3;
-    d += 3;
 
-    // Map to match command switches to argument values
-    var mapOptions = new Map();
+    if (has_n) {
+        n = parseInt(args.get('-n'));
 
-    // use the option indices to parse message and destination
-    message = parseOption(args, m, ' ');
-    destination = parseOption(args, d, ' ').replace(/<#/, '').replace(/>/, '');
-
-    // if the message is given by URL, extract its ID
-    if (message.search(/^(https:\/\/discord.com\/channels\/)/) >= 0) {
-        // The target is given by url
-        message = message.substring(message.lastIndexOf('/') + 1);
-    }
-
-    // add them to the map
-    mapOptions.set('m', message);
-    mapOptions.set('d', destination);
-
-    // process the comment option
-    if (c != -1) {
-
-        // check for the opening quotation
-        commentStart = args.indexOf('"', c + 3);
-        commentEnd = args.indexOf('"', commentStart + 1);
-
-        if (commentStart == -1 || commentEnd == -1) {
-            errorMessage(cmd.channel, 'Invalid arguments: comments must be enclosed in double quotes. Example: `\"comment\"`');
-            return;
+        if (typeof n != 'number') {
+            return 14;
         }
+    } else if (has_t) {
+        t = parseInt(args.get('-t'));
 
-        comment = args.substring(commentStart + 1, commentEnd);
-    }
-    mapOptions.set('c', comment);
-
-    // set repeating header option
-    mapOptions.set('repeatHeader', true);
-
-    // process the numMessages option
-    if (n != -1 && N != -1) {
-
-        errorMessage(cmd.channel, 'Invalid arguments: `-n` and `-N` are mutually exclusive.')
-
-    } else if (n != -1) { // set number of subsequent messages to move
-
-        numMessages = parseInt(parseOption(args, n + 3, ' '));
-
-    } else  if (N != -1) { // update repeating header option
-        numMessages = parseInt(parseOption(args, N + 3, ' '));
-        mapOptions.set('repeatHeader', false);
+        if (typeof t != 'number') {
+            return 14;
+        }
     }
 
-    // return if numMessages is NaN
-    if (typeof numMessages != "number") {
-
-        errorMessage(cmd.channel, 'Invalid arguments: value for `-n` must be an integer.');
-        return;
-    }
-
-    mapOptions.set('n', numMessages);
-    console.log(mapOptions);
-
-    return mapOptions;
+    return 0;
 }
 
 /*
@@ -207,6 +220,9 @@ function mvbotHeader (msg, mover, comment = '') {
     // Weekday Month Day Year HH:MM:SS
     // "REASON" - @mover
 
+    // Sometimes the original message author shows as <@null>.
+    // I suspect this has something to do with users not being cached yet
+
     var h = '<@' + /*(msg.member ? msg.member : msg.author)*/ msg.author + '> in <#' + msg.channel + '>\n';
     h += msg.createdAt + '\n';
     h += (comment == '') ? '' : '*\"' + comment + '\"*';
@@ -223,64 +239,151 @@ function mvbotHeader (msg, mover, comment = '') {
 */
 function processCommand (cmd) {
 
-    // extract options from the command string
-    var args = getopts(cmd);
-
     // verify permissions of the user invoking the command
     if (!cmd.member.hasPermission('MANAGE_MESSAGES')) {
 
-        cmd.channel.send('Sorry, ' + cmd.member.displayName + '. I can\'t let you do that.');
-        return;
+        errorMessage(cmd.channel, 'Sorry, ' + cmd.member.displayName + '. I can\'t let you do that.');
+        return -1;
     }
 
+    // extract options from the command string
+    var args = getopts(cmd);
+    //console.log(args);
+
+    if (!args) {
+        usage(cmd.channel);
+        return 0;
+    }
+
+    /*
+        validation codes:
+        0   OK
+        11  mutual exclusion error
+        12  message(s) not specified
+        13  destination not specified
+        14  range indicator typeError
+    */
+    var validationCode = validateArgs(args);
+
+    switch (validationCode) {
+        case 0:
+            // normal return code. No issues.
+            break;
+        case 11:
+            errorMessage(cmd.channel, 'Mutual exclusion error: two or more incompatible switches were used.');
+            break;
+
+        case 12:
+            errorMessage(cmd.channel, 'Invalid arguments: A message or range of messages must be specified.');
+            break;
+
+        case 13:
+            errorMessage(cmd.channel, 'Invalid arguments: A destination channel must be specified.');
+            break;
+
+        case 14:
+            errorMessage(cmd.channel, 'Type error: range indicator must be a number. Ex. `-t 2` or `-n 5`.');
+            break;
+
+        default:
+            break;
+    }
+
+    if (validationCode > 0) {
+        console.log('validation error ', validationCode);
+        return validationCode;
+    }
+
+    // obtain the destination id without prefix and suffix
+    args.set('-d',
+        args.get('-d').replace(/<#/, '').replace(/>/, '')
+    );
+
+    messages = args.get('-m').split(/\s+/);
+
+    // loop through messages and convert from url to id
+    messages.forEach((message, i) => {
+        // if the message is given by URL, extract its ID
+        if (message.search(/^(https:\/\/discord.com\/channels\/)/) >= 0) {
+            // The target is given by url
+            messages[i] = message.substring(message.lastIndexOf('/') + 1).trim();
+        }
+    });
+
+    //console.log(messages);
+
     // get a reference to the target channel
-    var targetChannel = bot.channels.resolve(args.get('d'));
+    var targetChannel = bot.channels.resolve(args.get('-d'));
 
     // ensure it exists
     if (!targetChannel) {
         errorMessage(cmd.channel, 'The target channel doesn\'t exist!');
-        return;
+        return -2;
     }
-
-    // set batch move options
-    var repeat = args.get('repeatHeader');
 
     // get a reference to the MessagesManager for the current channel
     var currentChannelMessages = cmd.channel.messages;
 
-    // Fetch the desired message
-    currentChannelMessages.fetch(args.get('m')).then( msg => {
+    // Move n number of messages
+    if (args.has('-n')) {
+        n = args.get('-n');
+        currentChannelMessages.fetch(args.get('-m')).then( firstMsg => {
 
-        // move the initial message
-        targetChannel.send(mvbotHeader(msg, cmd.member, args.get('c')));
-        moveMessage(msg, targetChannel);
+            // move the initial message
+            targetChannel.send(mvbotHeader(firstMsg, cmd.member, args.get('-c')));
+            moveMessage(firstMsg, targetChannel);
 
-        // move subsequent messages
-        if (args.get('n') > 1) {
+            // move subsequent messages
+            if ( (n = args.get('-n')) > 1) {
 
-            // fetch n messages after the original specified message
-            currentChannelMessages.fetch({limit: args.get('n') - 1, after: args.get('m')}).then( followingMessages => {
-
-                // move each message
-                followingMessages.sort().each( m => {
-                    if (repeat) {
-                        targetChannel.send(mvbotHeader(msg, cmd.member, args.get('c')));
+                // fetch n messages after the original specified message
+                currentChannelMessages.fetch({
+                        limit: n - 1,
+                        after: args.get('-m')
                     }
-                    moveMessage(m, targetChannel);
+                ).then( followingMessages => {
+
+                    var lastUser = firstMsg.author;
+
+                    // move each message
+                    followingMessages.sort().each( m => {
+                        if (m.author != lastUser) {
+                            lastUser = m.author;
+                            targetChannel.send(mvbotHeader(m, cmd.member, args.get('-c')));
+                        }
+                        moveMessage(m, targetChannel);
+                    });
+
+                }, err => {
+                    console.log(err);
                 });
+            }
 
-            }, err => {
-                console.log(err);
-            });
-        }
+            //cmd.delete(); // delete invoking command
 
-        //cmd.delete(); // delete invoking command
+       }, e => {
+           cmd.channel.send('I was unable to find the message you want to move. Ensure you are entering a valid message ID.');
+           console.log(e);
+       });
 
-   }, e => {
-       cmd.channel.send('I was unable to find the message you want to move. Ensure you are entering a valid message ID.');
-       console.log(e);
-   });
+   } else if (args.has('-t')) { // move all messages sent in the last t minutes
 
+   } else { // move the messages specified in the list
+
+       messages.forEach( message => {
+
+           currentChannelMessages.fetch(message).then( msg => {
+               targetChannel.send(mvbotHeader(msg, cmd.member, args.get('-c')));
+               moveMessage(msg, targetChannel);
+
+           }, e => {
+               console.log(e);
+           });
+       });
+
+   }
+
+   return 0;
 
 }
 
@@ -301,7 +404,11 @@ bot.on('message', message => {
     // check message for bot invocation
     if (message.content.startsWith('!mv')) {
 
-        processCommand(message);
+        var exitcode = 0;
+
+        exitcode = processCommand(message);
+
+        console.log('exit ', exitcode)
     }
 
 });
