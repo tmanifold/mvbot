@@ -1,3 +1,6 @@
+
+"use strict";
+
 const {Client, MessageEmbed} = require('discord.js')
 const Auth = require('./auth.json')
 const pkg_info = require('./package.json')
@@ -72,7 +75,7 @@ function getopts(cmd) {
     // construct the map
     var opts = new Map();
 
-    for (i in switches) {
+    for (let i in switches) {
         opts.set(switches[i], args[i]);
     }
 
@@ -110,10 +113,10 @@ function getopts(cmd) {
 */
 function validateArgs (args) {
 
-    has_m = args.has('-m');
-    has_d = args.has('-d');
-    has_n = args.has('-n');
-    has_t = args.has('-t');
+    var has_m = args.has('-m');
+    var has_d = args.has('-d');
+    var has_n = args.has('-n');
+    var has_t = args.has('-t');
 
     // // validate switch compatibility
     // var compat  = has_m << 3;
@@ -142,13 +145,17 @@ function validateArgs (args) {
 
 
     if (has_n) {
-        n = parseInt(args.get('-n'));
+        let n = parseInt(args.get('-n'));
 
         if (typeof n != 'number') {
             return 14;
         }
+
+        if (n > 100) {
+            return 15;
+        }
     } else if (has_t) {
-        t = parseInt(args.get('-t'));
+        let t = parseInt(args.get('-t'));
 
         if (typeof t != 'number') {
             return 14;
@@ -282,7 +289,11 @@ function processCommand (cmd) {
             break;
 
         case 14:
-            errorMessage(cmd.channel, 'Type error: range indicator must be a number. Ex. `-t 2` or `-n 5`.');
+            errorMessage(cmd.channel, 'Type error: Range indicator must be a number. Ex. `-t 2` or `-n 5`.');
+            break;
+
+        case 15:
+            errorMessage(cmd.channel, 'Range error: The Discord API only allows fetching 100 messages at once.');
             break;
 
         default:
@@ -299,7 +310,7 @@ function processCommand (cmd) {
         args.get('-d').replace(/<#/, '').replace(/>/, '')
     );
 
-    messages = args.get('-m').split(/\s+/);
+    var messages = args.get('-m').split(/\s+/);
 
     // loop through messages and convert from url to id
     messages.forEach((message, i) => {
@@ -326,7 +337,7 @@ function processCommand (cmd) {
 
     // Move n number of messages
     if (args.has('-n')) {
-        n = args.get('-n');
+        let n = args.get('-n');
         currentChannelMessages.fetch(args.get('-m')).then( firstMsg => {
 
             // move the initial message
@@ -343,7 +354,7 @@ function processCommand (cmd) {
                     }
                 ).then( followingMessages => {
 
-                    var lastUser = firstMsg.author;
+                    let lastUser = firstMsg.author;
 
                     // move each message
                     followingMessages.sort().each( m => {
@@ -352,6 +363,7 @@ function processCommand (cmd) {
                             targetChannel.send(mvbotHeader(m, cmd.member, args.get('-c')));
                         }
                         moveMessage(m, targetChannel);
+
                     });
 
                 }, err => {
@@ -404,7 +416,7 @@ bot.on('message', message => {
     // check message for bot invocation
     if (message.content.startsWith('!mv')) {
 
-        var exitcode = 0;
+        let exitcode = 0;
 
         exitcode = processCommand(message);
 
@@ -416,5 +428,10 @@ bot.on('message', message => {
 bot.on('error', err => {
     console.log(err);
 });
+
+// bot.on('rateLimit', lim => {
+
+//     console.log(lim);
+// });
 
 bot.login(Auth.dev_token);
