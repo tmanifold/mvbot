@@ -1,11 +1,18 @@
 # Changelog
 
-## [1.0.0] -
+## [0.2.0-alpha] - 2021-05-07
 ### Added
 - Bulk Move
+  - `-n N`
+  - space-separated list of messages
+- Other bots should  now be ignored
+- Better error handling with custom errors
 ### Changed
 - Command structure is now switch based.
 - Rewrote sections of code and generally cleaned the place up a bit.
+### Fixed
+- Permissions checking
+  - The bot should now check channel-based permissions and will no longer delete the original message if required permissions aren't met.
 
 ## [0.1.2] - 2020-11-15
 ### Fixed

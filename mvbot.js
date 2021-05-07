@@ -1,9 +1,11 @@
 
 "use strict";
 
-const {Client, MessageEmbed} = require('discord.js')
+const {Client, MessageEmbed, Permissions, DiscordAPIError} = require('discord.js')
 const Auth = require('./auth.json')
 const pkg_info = require('./package.json')
+const MvbotErrors = require('./mvbotError.js');
+const PREFIX = '!mv';
 
 var bot = new Client();
 
@@ -38,7 +40,7 @@ function errorMessage(channel, message) {
         args (String): argument string to parse
         startidx (int): staring index to begin parsing
         enchar  (char): character to parse until.
-    return: String containing the parsed option value
+    return: String
 */
 function parseOption(args, startidx, endchar) {
 
@@ -51,7 +53,7 @@ function parseOption(args, startidx, endchar) {
     getopts: Extracts options from the given command
     parameters:
         cmd (Message): The command from which to extract arguments
-    return: A Map of the options and their values
+    return: Map
 */
 function getopts(cmd) {
 
@@ -86,8 +88,7 @@ function getopts(cmd) {
     validateArgs: validates the given map of arguments
     parameters:
         args (Map): a map of switches and their corresponding values
-    return: an error code correspondng to the argument that failed
-    validation. 0 if no errors
+    return: Number
 
     switches:
         -m      the message id(s) to be moved
@@ -126,43 +127,68 @@ function validateArgs (args) {
     //
     // console.log(compat);
 
-    // enforce mutual exclusion: -m and -t are both present or -t and -n are both present
-    if ((has_t && has_m) || (has_t && has_n)) {
-        return 11;
-    }
-    // a messageId list was given along with -n option
-    if (has_n && args.get('-m').split(' ').length > 1) {
-        return 11;
+    // check message is specified
+    if (!has_m) {
+        throw new MvbotErrors.MessageError();
     }
     // a message or range of messages was not specified: missing both -m and -t
     if (!has_t && !has_m)  {
-        return 12;
+        throw new MvbotErrors.MessageError();
+        //return 12;
     }
-    // check if the target message and destination are specified
+    // check if the target destination is specified
     if (!has_d) {
-        return 13;
+        throw new MvbotErrors.DestinationError();
+        //return 13;
     }
 
+    // enforce mutual exclusion: -m and -t are both present or -t and -n are both present
+    if ((has_t && has_m) || (has_t && has_n)) {
+        throw new MvbotErrors.MutualExclusionError();
+        //return 11;
+    }
+    // a messageId list was given along with -n option
+    if (has_n && args.get('-m').split(' ').length > 1) {
+        throw new MvbotErrors.MutualExclusionError();
+        //return 11;
+    }
 
     if (has_n) {
         let n = parseInt(args.get('-n'));
 
         if (typeof n != 'number') {
-            return 14;
+            throw new MvbotErrors.TypeError('The value given for `-n` should be a number.')
+            //return 14;
         }
 
         if (n > 100) {
+            throw new MvbotErrors.RangeError('The value for `-n` should be in the range [1,100].');
             return 15;
         }
     } else if (has_t) {
         let t = parseInt(args.get('-t'));
 
         if (typeof t != 'number') {
-            return 14;
+            throw new MvbotErrors.TypeError('The value given for `-t` should be a number.')
+            //return 14;
         }
     }
 
     return 0;
+}
+
+/*
+    validatePermissions: Verify the specified user has the required
+                            permissions for a given channel.
+    parameters:
+        user (GuildMember): The user for whom permissions should be verified
+        channel (TextChannel): The channel in which the user should have the given permissions
+        perm (Permissions): A Permissions object containing the required permissions
+    return: Boolean
+*/
+function validatePermissions(user, channel, perms) {
+
+    return user.permissionsIn(channel).has(perms, true);
 }
 
 /*
@@ -206,9 +232,20 @@ function moveMessage (msg, targetChannel) {
     targetChannel.send(msg.content == '' ? '' : '>>> ' + msg.content, {
         files: attachments,
         embeds: embeds
+    })
+    .then( () => {
+        msg.delete();
+    })
+    .catch( e => {
+        // Invalid permissions probably
+        //console.error(e);
+        if (e.code == 50013) {
+            console.error('Throwing from mvMessages. ');
+            throw new MvbotErrors.PermissionError();
+        }
     });
 
-   msg.delete(); // delete message original message
+   //msg.delete(); // delete message original message
 }
 
 /*
@@ -217,7 +254,7 @@ function moveMessage (msg, targetChannel) {
         msg (Message): The message object to be moved
         mover (Member): The user invoking the command
         comment (str): option comment
-    return: The completed header string
+    return: String
 */
 function mvbotHeader (msg, mover, comment = '') {
 
@@ -230,10 +267,14 @@ function mvbotHeader (msg, mover, comment = '') {
     // Sometimes the original message author shows as <@null>.
     // I suspect this has something to do with users not being cached yet
 
-    var h = '<@' + /*(msg.member ? msg.member : msg.author)*/ msg.author + '> in <#' + msg.channel + '>\n';
-    h += msg.createdAt + '\n';
-    h += (comment == '') ? '' : '*\"' + comment + '\"*';
-    h += ' - <@' + mover + '>\n\n';
+    // var h = '<@' + msg.author + '> in <#' + msg.channel + '>\n';
+    // h += msg.createdAt + '\n';
+    // h += (comment == '') ? '' : '*\"' + comment + '\"*';
+    // h += ' - <@' + mover + '>\n\n';
+
+    var h = 'Moved from <#' + msg.channel + '> by <@' + mover + '>.\n'
+          + (comment == '' ? '' : 'Reason: *' + comment + '*\n')
+          + msg.createdAt + ': <@' + msg.author + '> said\n\n';
 
     return h;
 }
@@ -242,16 +283,16 @@ function mvbotHeader (msg, mover, comment = '') {
     processCommand: Begin processing commands sent to the bot
     parameters:
         cmd:    The command sent to the bot
-    return: none
+    return: Number
 */
 function processCommand (cmd) {
 
-    // verify permissions of the user invoking the command
-    if (!cmd.member.hasPermission('MANAGE_MESSAGES')) {
+    // verify global permissions of the user invoking the command
+    // if (!cmd.member.hasPermission('MANAGE_MESSAGES')) {
 
-        errorMessage(cmd.channel, 'Sorry, ' + cmd.member.displayName + '. I can\'t let you do that.');
-        return -1;
-    }
+    //     errorMessage(cmd.channel, 'Sorry, ' + cmd.member.displayName + '. I can\'t let you do that.');
+    //     return -1;
+    // }
 
     // extract options from the command string
     var args = getopts(cmd);
@@ -270,35 +311,39 @@ function processCommand (cmd) {
         13  destination not specified
         14  range indicator typeError
     */
-    var validationCode = validateArgs(args);
+    var validationCode = 0;
+    
 
-    switch (validationCode) {
-        case 0:
-            // normal return code. No issues.
-            break;
-        case 11:
-            errorMessage(cmd.channel, 'Mutual exclusion error: two or more incompatible switches were used.');
-            break;
+    validationCode = validateArgs(args);
 
-        case 12:
-            errorMessage(cmd.channel, 'Invalid arguments: A message or range of messages must be specified.');
-            break;
 
-        case 13:
-            errorMessage(cmd.channel, 'Invalid arguments: A destination channel must be specified.');
-            break;
+    // switch (validationCode) {
+    //     case 0:
+    //         // normal return code. No issues.
+    //         break;
+    //     case 11:
+    //         errorMessage(cmd.channel, 'Mutual exclusion error: two or more incompatible switches were used.');
+    //         break;
 
-        case 14:
-            errorMessage(cmd.channel, 'Type error: Range indicator must be a number. Ex. `-t 2` or `-n 5`.');
-            break;
+    //     case 12:
+    //         errorMessage(cmd.channel, 'Invalid arguments: A message or range of messages must be specified.');
+    //         break;
 
-        case 15:
-            errorMessage(cmd.channel, 'Range error: The Discord API only allows fetching 100 messages at once.');
-            break;
+    //     case 13:
+    //         errorMessage(cmd.channel, 'Invalid arguments: A destination channel must be specified.');
+    //         break;
 
-        default:
-            break;
-    }
+    //     case 14:
+    //         errorMessage(cmd.channel, 'Type error: Range indicator must be a number. Ex. `-t 2` or `-n 5`.');
+    //         break;
+
+    //     case 15:
+    //         errorMessage(cmd.channel, 'Range error: The Discord API only allows fetching 100 messages at once.');
+    //         break;
+
+    //     default:
+    //         break;
+    // }
 
     if (validationCode > 0) {
         console.log('validation error ', validationCode);
@@ -306,8 +351,11 @@ function processCommand (cmd) {
     }
 
     // obtain the destination id without prefix and suffix
+    let d = args.get('-d');
+    if (d == null) throw new MvbotErrors.DestinationError();
+
     args.set('-d',
-        args.get('-d').replace(/<#/, '').replace(/>/, '')
+        d.replace(/<#/, '').replace(/>/, '')
     );
 
     var messages = args.get('-m').split(/\s+/);
@@ -328,74 +376,143 @@ function processCommand (cmd) {
 
     // ensure it exists
     if (!targetChannel) {
-        errorMessage(cmd.channel, 'The target channel doesn\'t exist!');
-        return -2;
+        throw new MvbotErrors.DestinationError();
+        //errorMessage(cmd.channel, 'The target channel doesn\'t exist!');
+        //return -2;
     }
 
-    // get a reference to the MessagesManager for the current channel
-    var currentChannelMessages = cmd.channel.messages;
+    // required permissions for the user to invoke the bot
+    const requiredPermsUser = new Permissions([
+        'MANAGE_MESSAGES'
+    ]);
+    
+    // require permissions for the bot to do its thing
+    const requiredPermsBot = new Permissions([
+        'ATTACH_FILES',
+        'EMBED_LINKS',
+        'MANAGE_MESSAGES',
+        'READ_MESSAGE_HISTORY',
+        'SEND_MESSAGES',
+        'VIEW_CHANNEL'
+    ]);
 
-    // Move n number of messages
-    if (args.has('-n')) {
-        let n = args.get('-n');
-        currentChannelMessages.fetch(args.get('-m')).then( firstMsg => {
+    // verify the user has the required permissions
+    if (!validatePermissions(cmd.member, cmd.channel, requiredPermsUser)) {
 
-            // move the initial message
-            targetChannel.send(mvbotHeader(firstMsg, cmd.member, args.get('-c')));
-            moveMessage(firstMsg, targetChannel);
+        throw new MvbotErrors.PermissionError('User lacks sufficient permissions in this channel.')
 
-            // move subsequent messages
-            if ( (n = args.get('-n')) > 1) {
+    } else if (!validatePermissions(cmd.member, targetChannel, requiredPermsUser)) {
 
-                // fetch n messages after the original specified message
-                currentChannelMessages.fetch({
-                        limit: n - 1,
-                        after: args.get('-m')
+        throw new MvbotErrors.PermissionError('User lacks sufficient permissions in the destination channel.');
+    }
+
+    // verify bot has required permissions
+    cmd.channel.guild.members.fetch(bot.user)
+    .then( myself => {
+
+        // // validate permissions for the current channel
+        if (!validatePermissions(myself, cmd.channel, requiredPermsBot)) {
+
+            throw new MvbotErrors.PermissionError('I lack sufficient permissions in this channel.');
+
+            
+            //return -12;
+        } else if (!validatePermissions(myself, targetChannel, requiredPermsBot)) {
+
+            //errorMessage(cmd.channel, 'Permission error: I lack sufficient permissions in the destination channel.');
+            
+            //return -13;
+
+            throw new MvbotErrors.PermissionError('I lack sufficient permissions in the destination channel.');
+
+        } else { // the bot has the required permissions
+
+            // get a reference to the MessagesManager for the current channel
+            let currentChannelMessages = cmd.channel.messages;
+
+            // Move n number of messages
+            if (args.has('-n')) {
+
+                let n = args.get('-n');
+
+                let theMessage = args.get('-m');
+                if (theMessage == null) throw new MvbotErrors.MessageError();
+
+                currentChannelMessages.fetch(args.get('-m'))
+                .then( firstMsg => {
+
+                    // move the initial message
+                    targetChannel.send(mvbotHeader(firstMsg, cmd.member, args.get('-c')));
+                    moveMessage(firstMsg, targetChannel);
+
+                    // move subsequent messages
+                    if ( (n = args.get('-n')) > 1) {
+
+                        // fetch n messages after the original specified message
+                        currentChannelMessages.fetch({
+                                limit: n - 1,
+                                after: args.get('-m')
+                            }
+                        )
+                        .then( followingMessages => {
+
+                            let lastUser = firstMsg.author;
+
+                            // move each message
+                            followingMessages.sort().each( m => {
+                                if (m.author != lastUser) {
+                                    lastUser = m.author;
+                                    targetChannel.send(mvbotHeader(m, cmd.member, args.get('-c')));
+                                }
+                                moveMessage(m, targetChannel);
+
+                            });
+                        })
+                        .catch(e => {
+                            console.error('SOMETHING WONKY HAPPENED:  ', e);
+                            //throw new MvbotErrors.MessageError('The target message doesn\'t exist!');
+                        });
                     }
-                ).then( followingMessages => {
 
-                    let lastUser = firstMsg.author;
+                //cmd.delete(); // delete invoking command
 
-                    // move each message
-                    followingMessages.sort().each( m => {
-                        if (m.author != lastUser) {
-                            lastUser = m.author;
-                            targetChannel.send(mvbotHeader(m, cmd.member, args.get('-c')));
-                        }
-                        moveMessage(m, targetChannel);
-
-                    });
-
-                }, err => {
-                    console.log(err);
+                }, e => {
+                    if (e.code == 10008) {
+                        throw new MvbotErrors.MessageError('The target message doesn\'t exist!');
+                    }
                 });
+
+            } else if (args.has('-t')) { // move all messages sent in the last t minutes
+
+            } else { // move the messages specified in the list
+
+                messages.forEach( message => {
+
+                    currentChannelMessages.fetch(message)
+                    .then( msg => {
+                        targetChannel.send(mvbotHeader(msg, cmd.member, args.get('-c')));
+                        moveMessage(msg, targetChannel);
+
+                    })
+                    .catch( e => {
+                        throw new MvbotErrors.MessageError('The target message doesn\'t exist!');
+                    });
+                });
+
             }
 
-            //cmd.delete(); // delete invoking command
+            // delete the original command
+            cmd.delete();
+        }
+    })
+    .catch(e => { // handle permission errors
 
-       }, e => {
-           cmd.channel.send('I was unable to find the message you want to move. Ensure you are entering a valid message ID.');
-           console.log(e);
-       });
-
-   } else if (args.has('-t')) { // move all messages sent in the last t minutes
-
-   } else { // move the messages specified in the list
-
-       messages.forEach( message => {
-
-           currentChannelMessages.fetch(message).then( msg => {
-               targetChannel.send(mvbotHeader(msg, cmd.member, args.get('-c')));
-               moveMessage(msg, targetChannel);
-
-           }, e => {
-               console.log(e);
-           });
-       });
-
-   }
-
-   return 0;
+        errorMessage(cmd.channel, e.message);
+        
+        
+    });
+    
+    return 0;
 
 }
 
@@ -414,20 +531,37 @@ bot.on('ready', () => {
 bot.on('message', message => {
 
     // check message for bot invocation
-    if (message.content.startsWith('!mv')) {
+    if (message.content.startsWith(PREFIX) && !message.author.bot) {
 
-        let exitcode = 0;
+        let exit = 0;
 
-        exitcode = processCommand(message);
+        // REWORK ALL OF THIS TO USE PROMISES FOR BETTER ERROR PROPAGATION
+        // REF: https://medium.com/front-end-weekly/error-propagation-in-javascript-with-error-translation-pattern-78cf7178fe92
+        try {
+            exit = processCommand(message);
+        }
+        catch (err) {
+            if (err instanceof MvbotErrors.MvbotError) {
+                errorMessage(message.channel, err.message);
+                exit = err.code;
 
-        console.log('exit ', exitcode)
+            }
+            console.error(err);
+        }
+
+        console.log('exit ', exit);
     }
-
 });
 
 bot.on('error', err => {
-    console.log(err);
+
+    //console.error('ERROR HAPPENED', err);
 });
+
+// process.on('unhandledRejection', err => {
+
+//     console.error('UNHANDLED PROMISE REJECTION: ', err);
+// });
 
 // bot.on('rateLimit', lim => {
 
