@@ -1,6 +1,6 @@
 {
 	"name": "mvbot",
-	"version": "0.2.0",
+	"version": "0.2.0-alpha.1",
 	"description": "Move posts from one discord channel to another",
 	"main": "mvbot.js",
 	"author": "Tyler Manifold",

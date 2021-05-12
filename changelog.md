@@ -1,10 +1,22 @@
 # Changelog
 
+## [0.2.0-alpha.1] - 2021-05-12
+### Added
+- `ClientOptions` during the creation of the bot client object
+    - These are to manage rate-limiting and message caching
+### Changed
+- Header now uses embeds
+- updated usage to match new command scheme
+- usage now uses embeds
+### Fixed
+- A bug that caused the bot to report `<@null>` for the original user.
+    - This was likely the result of the way discord.js handles user caching. Sometimes referencing a user by their `GuildMember` object results in `<@null>` because the object hasn't been cached at the time of reference. Changing the reference to a User object (independent of guild membership) seems to alleviate this.
+
 ## [0.2.0-alpha] - 2021-05-07
 ### Added
 - Bulk Move
-  - `-n N`
-  - space-separated list of messages
+    - `-n N`
+    - space-separated list of messages
 - Other bots should  now be ignored
 - Better error handling with custom errors
 ### Changed
@@ -12,7 +24,7 @@
 - Rewrote sections of code and generally cleaned the place up a bit.
 ### Fixed
 - Permissions checking
-  - The bot should now check channel-based permissions and will no longer delete the original message if required permissions aren't met.
+    - The bot should now check channel-based permissions and will no longer delete the original message if required permissions aren't met.
 
 ## [0.1.2] - 2020-11-15
 ### Fixed

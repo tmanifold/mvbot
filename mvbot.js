@@ -1,13 +1,27 @@
 
-"use strict";
+'use strict';
 
-const {Client, MessageEmbed, Permissions, DiscordAPIError} = require('discord.js')
+//const {Client, MessageEmbed, Permissions, DiscordAPIError} = require('discord.js')
+const DiscordJS = require('discord.js');
 const Auth = require('./auth.json')
 const pkg_info = require('./package.json')
 const MvbotErrors = require('./mvbotError.js');
 const PREFIX = '!mv';
+const MVBOT_EMBED_COLOR = 0x12086e;
 
-var bot = new Client();
+// Initialize bot and ClientOptions
+// https://discord.js.org/#/docs/main/stable/typedef/ClientOptions
+var bot = new DiscordJS.Client({
+    options: {
+        // limit message cache lifetime to the last 24 hours
+        // 60s * 60m * 24h = 86400s/day
+        messageCacheLifetime: 86400,
+        // check daily for sweepable message
+        messageSweepInterval: 86400,
+        // time in milliseconds to wait between REST requests. Trying to avoid rate limiting
+        restTimeOffset: 2500,
+    }
+});
 
 /*
     usage: Display help message and useage information
@@ -17,7 +31,53 @@ var bot = new Client();
 */
 function usage(channel) {
 
-    channel.send('usage:\n `!mv <message-id> <target channel> ["reason"]`');
+    var u = {
+        color: MVBOT_EMBED_COLOR,
+        author: {
+            name: bot.user.username,
+            icon_url: bot.user.displayAvatarURL(),
+        },
+        description: '[GitHub](https://github.com/tmanifold/mvbot) | [Top.gg](https://top.gg/bot/706927667043237928)',
+        fields: [
+            {
+            // switches:
+            //     -m      the message id(s) to be moved
+            //     -d      the destination channel
+            //     -c      a comment explaining why the message was moved (optional)
+            //     -n      the number of messages to be moved
+            //     -t      the timespan in minutes
+                name: '\u200b',
+                value: 'usage: `!mv -m message [...] -d dest [options]`',
+            },
+            {
+                name: 'Info:',
+                value:
+                    '```' +
+                    '-m message     One or more message IDs or URLs, separated by space.\n' +
+                    `-d dest        Destination channel. user and bot must have correct permissions.\n` +
+                    '```',
+            },
+            {
+                name: 'Options',
+                value:
+                    '```' +
+                    '-c comment     A text string explaining why the message was moved.\n' +
+                    '-n number      Moves the specifed number of messages, beginning with the one\n' +
+                    '               given by -m message. Cannot be used with a list of messages.\n' +
+                    '-t time        Move all messages within the timeframe, in minutes.' +
+                    '```',
+            },
+            {
+                name: 'Legacy',
+                value: 'usage: `!mv <message-id> <target channel> ["reason"]`',
+            },
+        ],
+        footer: {
+            text: 'mvbot v' + pkg_info.version,
+        },
+    };
+
+    channel.send('', {embed: u});
 }
 
 /*
@@ -30,7 +90,7 @@ function usage(channel) {
 function errorMessage(channel, message) {
 
         channel.send(message);
-        usage(channel);
+        //usage(channel);
 }
 
 /*
@@ -97,20 +157,7 @@ function getopts(cmd) {
         -n      the number of messages to be moved
         -t      the timespan in minutes
 
-
-    Compatibility matrix
-      m d n t r
-    m - 1 1 0
-    d 1 - 1 1
-    n 1 1 - 0
-    t 0 1 0 -
-    r 1       -
-
-    Error codes:
-    11   -t and -m are mutually exclusive
-    12   -m or -t not specified
-    13   -d not specified
-    14   value of -n or -t is NaN
+        --no-header     do not print the mvbot header
 */
 function validateArgs (args) {
 
@@ -163,7 +210,7 @@ function validateArgs (args) {
 
         if (n > 100) {
             throw new MvbotErrors.RangeError('The value for `-n` should be in the range [1,100].');
-            return 15;
+            //return 15;
         }
     } else if (has_t) {
         let t = parseInt(args.get('-t'));
@@ -216,22 +263,29 @@ function moveMessage (msg, targetChannel) {
             console.log(err);
         });
 
-    } else {
+    } //else {
 
         // gather original message attachments
         if (msg.attachments.size > 0) {
 
             msg.attachments.each(a => {
                 //console.log(a);
-                attachments.push(a.proxyURL);
+                attachments.push(a.attachment);
             });
-        }
+    //    }
     }
 
+    //console.log('msg.embeds: ', embeds);
+    //console.log('embeds', msg.embeds);
+    //console.log('attachments: ', msg.attachments);
+
+
     // send the original message content as a new message to the targetChannel
-    targetChannel.send(msg.content == '' ? '' : '>>> ' + msg.content, {
+    targetChannel.send(msg.content == '' ? '' : msg.content, {
         files: attachments,
-        embeds: embeds
+        //files: msg.attachments,
+        embeds: embeds,
+        //embed: msg.embeds,
     })
     .then( () => {
         msg.delete();
@@ -254,29 +308,37 @@ function moveMessage (msg, targetChannel) {
         msg (Message): The message object to be moved
         mover (Member): The user invoking the command
         comment (str): option comment
-    return: String
+    return: MessageEmbed
 */
 function mvbotHeader (msg, mover, comment = '') {
 
-    // build out the message to send to the target channel
-    // FORMAT:
-    // @author | #original-channel
-    // Weekday Month Day Year HH:MM:SS
-    // "REASON" - @mover
+    var h = {
+        color: MVBOT_EMBED_COLOR,
+        author: {
+            name: msg.author.username,
+            icon_url: msg.author.displayAvatarURL(),
+        },
+        description: 'Shared in <#' + msg.channel + '>',
+        fields: [
+            {
+                name: 'Comment',
+                value: comment == '' ? 'Moved by <@' + mover + '>.' : '*\"' + comment + '\"* - <@' + mover + '>',
+            },
+        ],
+        footer: {
+            text: 'mvbot',
+        },
+        timestamp: msg.createdAt,
+    };
 
-    // Sometimes the original message author shows as <@null>.
-    // I suspect this has something to do with users not being cached yet
+    //var d = msg.createdAt.form
 
-    // var h = '<@' + msg.author + '> in <#' + msg.channel + '>\n';
-    // h += msg.createdAt + '\n';
-    // h += (comment == '') ? '' : '*\"' + comment + '\"*';
-    // h += ' - <@' + mover + '>\n\n';
+    // var h = 'Channel: <#' + msg.channel + '> | Author: <@' + msg.author + '>\n'
+    //       + msg.createdAt.toUTCString() + '\n'
+    //       + (comment == ''  ? 'Moved by <@' + mover + '>\n' : 'Reason: *\"' + comment + '\"* - <@' + mover + '>\n');
 
-    var h = 'Moved from <#' + msg.channel + '> by <@' + mover + '>.\n'
-          + (comment == '' ? '' : 'Reason: *' + comment + '*\n')
-          + msg.createdAt + ': <@' + msg.author + '> said\n\n';
-
-    return h;
+    return new DiscordJS.MessageEmbed(h);
+    //return h;
 }
 
 /*
@@ -312,38 +374,9 @@ function processCommand (cmd) {
         14  range indicator typeError
     */
     var validationCode = 0;
-    
+
 
     validationCode = validateArgs(args);
-
-
-    // switch (validationCode) {
-    //     case 0:
-    //         // normal return code. No issues.
-    //         break;
-    //     case 11:
-    //         errorMessage(cmd.channel, 'Mutual exclusion error: two or more incompatible switches were used.');
-    //         break;
-
-    //     case 12:
-    //         errorMessage(cmd.channel, 'Invalid arguments: A message or range of messages must be specified.');
-    //         break;
-
-    //     case 13:
-    //         errorMessage(cmd.channel, 'Invalid arguments: A destination channel must be specified.');
-    //         break;
-
-    //     case 14:
-    //         errorMessage(cmd.channel, 'Type error: Range indicator must be a number. Ex. `-t 2` or `-n 5`.');
-    //         break;
-
-    //     case 15:
-    //         errorMessage(cmd.channel, 'Range error: The Discord API only allows fetching 100 messages at once.');
-    //         break;
-
-    //     default:
-    //         break;
-    // }
 
     if (validationCode > 0) {
         console.log('validation error ', validationCode);
@@ -382,12 +415,12 @@ function processCommand (cmd) {
     }
 
     // required permissions for the user to invoke the bot
-    const requiredPermsUser = new Permissions([
+    const requiredPermsUser = new DiscordJS.Permissions([
         'MANAGE_MESSAGES'
     ]);
-    
+
     // require permissions for the bot to do its thing
-    const requiredPermsBot = new Permissions([
+    const requiredPermsBot = new DiscordJS.Permissions([
         'ATTACH_FILES',
         'EMBED_LINKS',
         'MANAGE_MESSAGES',
@@ -415,12 +448,12 @@ function processCommand (cmd) {
 
             throw new MvbotErrors.PermissionError('I lack sufficient permissions in this channel.');
 
-            
+
             //return -12;
         } else if (!validatePermissions(myself, targetChannel, requiredPermsBot)) {
 
             //errorMessage(cmd.channel, 'Permission error: I lack sufficient permissions in the destination channel.');
-            
+
             //return -13;
 
             throw new MvbotErrors.PermissionError('I lack sufficient permissions in the destination channel.');
@@ -478,6 +511,7 @@ function processCommand (cmd) {
 
                 }, e => {
                     if (e.code == 10008) {
+                        console.error(e);
                         throw new MvbotErrors.MessageError('The target message doesn\'t exist!');
                     }
                 });
@@ -495,6 +529,7 @@ function processCommand (cmd) {
 
                     })
                     .catch( e => {
+                        console.error(e);
                         throw new MvbotErrors.MessageError('The target message doesn\'t exist!');
                     });
                 });
@@ -508,13 +543,13 @@ function processCommand (cmd) {
     .catch(e => { // handle permission errors
 
         errorMessage(cmd.channel, e.message);
-        
-        
+
     });
-    
+
     return 0;
 
 }
+
 
 bot.on('ready', () => {
 
@@ -531,7 +566,9 @@ bot.on('ready', () => {
 bot.on('message', message => {
 
     // check message for bot invocation
-    if (message.content.startsWith(PREFIX) && !message.author.bot) {
+    if (message.content.startsWith(PREFIX)) {
+
+        if (message.author.bot) return;
 
         let exit = 0;
 
