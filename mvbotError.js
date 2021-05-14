@@ -30,6 +30,36 @@ class PermissionError extends Error {
     }
 }
 
+class PermissionFromError extends PermissionError {
+    constructor(msg = 'Insufficient permissions in the source channel', ...args) {
+        super(...args);
+
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, MvbotError);
+        }
+
+        this.name = 'PermissionFromError';
+        this.timestamp = Date.now();
+        this.code = 51;
+        this.message = msg;
+    }
+}
+
+class PermissionToError extends PermissionError {
+    constructor(msg = 'Insufficient permissions in the destination channel.', ...args) {
+        super(...args);
+
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, MvbotError);
+        }
+
+        this.name = 'PermissionToError';
+        this.timestamp = Date.now();
+        this.code = 52;
+        this.message = msg;
+    }
+}
+
 class MutualExclusionError extends MvbotError {
     constructor(msg = 'Two or more incompatible switches were used.', ...args) {
         super(...args);
@@ -108,6 +138,8 @@ class RangeError extends MvbotError {
 module.exports = {
     MvbotError,
     PermissionError,
+    PermissionFromError,
+    PermissionToError,
     MutualExclusionError,
     DestinationError,
     MessageError,

@@ -7,7 +7,7 @@ const Auth = require('./auth.json')
 const pkg_info = require('./package.json')
 const MvbotErrors = require('./mvbotError.js');
 const PREFIX = '!mv';
-const MVBOT_EMBED_COLOR = 0x12086e;
+const MVBOT_EMBED_COLOR = 0x5500AA;
 
 // Initialize bot and ClientOptions
 // https://discord.js.org/#/docs/main/stable/typedef/ClientOptions
@@ -127,12 +127,17 @@ function getopts(cmd) {
     // get array of switches from the command-string
     // /--(\w)+(-(\w)+)*/ matches long-form switches, ex., --no-header or --help
     // /-./ matches a short-form switch, ex., -m
-    var switches = cmd.content.match(/(--(\w)+(-(\w)+)*)|(-.)/g);
-    //console.log(switches);
+    //var switches = cmd.content.match(/(--(\w)+(-(\w)+)*)|(-.)/g);
+    var switches = cmd.content.match(/(-.)/g);
+    console.log(switches);
 
     if (!args || !switches) {
         return null;
     }
+
+    // check duplicates
+    var s = new Set(switches);
+    if (s.size != switches.length) throw new MvbotErrors.MvbotError('Duplicate options detected.');
 
     // construct the map
     var opts = new Map();
@@ -140,6 +145,8 @@ function getopts(cmd) {
     for (let i in switches) {
         opts.set(switches[i], args[i]);
     }
+
+    console.log('getopts: ' + opts.entries());
 
     return opts;
 }
@@ -160,6 +167,8 @@ function getopts(cmd) {
         --no-header     do not print the mvbot header
 */
 function validateArgs (args) {
+
+    console.log ('validateArgs: ', args);
 
     var has_m = args.has('-m');
     var has_d = args.has('-d');
@@ -201,9 +210,10 @@ function validateArgs (args) {
     }
 
     if (has_n) {
-        let n = parseInt(args.get('-n'));
+        //let n = parseInt(args.get('-n'));
+        let n = args.get('-n');
 
-        if (typeof n != 'number') {
+        if (isNaN(n)) {
             throw new MvbotErrors.TypeError('The value given for `-n` should be a number.')
             //return 14;
         }
@@ -213,9 +223,9 @@ function validateArgs (args) {
             //return 15;
         }
     } else if (has_t) {
-        let t = parseInt(args.get('-t'));
+        let t = args.get('-t');
 
-        if (typeof t != 'number') {
+        if (isNaN(t)) {
             throw new MvbotErrors.TypeError('The value given for `-t` should be a number.')
             //return 14;
         }
@@ -254,14 +264,20 @@ function moveMessage (msg, targetChannel) {
     // gather original message embeds
     if (msg.embeds.length > 0) {
 
-        msg.embeds.forEach( element => {
+        msg.embeds.forEach( e => {
 
             //console.log(element);
-            embeds.push(element);
+            //embeds.push(element);
+            if (e.type == 'rich') {
+                e.setColor(0x747474);
+                targetChannel.send({embed: e});
+            }
 
         }, err => {
             console.log(err);
         });
+
+        //msg.suppressEmbeds();
 
     } //else {
 
@@ -273,22 +289,22 @@ function moveMessage (msg, targetChannel) {
                 attachments.push(a.attachment);
             });
     //    }
-    }
-
+        }
     //console.log('msg.embeds: ', embeds);
     //console.log('embeds', msg.embeds);
     //console.log('attachments: ', msg.attachments);
 
-
     // send the original message content as a new message to the targetChannel
     targetChannel.send(msg.content == '' ? '' : msg.content, {
         files: attachments,
-        //files: msg.attachments,
-        embeds: embeds,
-        //embed: msg.embeds,
+        //embeds: embeds,
     })
     .then( () => {
-        msg.delete();
+        //console.log(msg);
+        msg.delete({timeout:1000})
+        .catch(e => {
+            console.error('error deleting message: ', e);
+        });
     })
     .catch( e => {
         // Invalid permissions probably
@@ -321,7 +337,7 @@ function mvbotHeader (msg, mover, comment = '') {
         description: 'Shared in <#' + msg.channel + '>',
         fields: [
             {
-                name: 'Comment',
+                name: '\u200b',
                 value: comment == '' ? 'Moved by <@' + mover + '>.' : '*\"' + comment + '\"* - <@' + mover + '>',
             },
         ],
@@ -469,6 +485,7 @@ function processCommand (cmd) {
                 let n = args.get('-n');
 
                 let theMessage = args.get('-m');
+                console.log(theMessage);
                 if (theMessage == null) throw new MvbotErrors.MessageError();
 
                 currentChannelMessages.fetch(args.get('-m'))
@@ -521,9 +538,11 @@ function processCommand (cmd) {
             } else { // move the messages specified in the list
 
                 messages.forEach( message => {
+                    console.log('message: ', message);
 
                     currentChannelMessages.fetch(message)
                     .then( msg => {
+                        console.log('fetched: ', msg);
                         targetChannel.send(mvbotHeader(msg, cmd.member, args.get('-c')));
                         moveMessage(msg, targetChannel);
 
@@ -541,6 +560,9 @@ function processCommand (cmd) {
         }
     })
     .catch(e => { // handle permission errors
+
+        if (e instanceof MvbotErrors.PermissionToError)
+            cmd.user
 
         errorMessage(cmd.channel, e.message);
 
@@ -578,6 +600,7 @@ bot.on('message', message => {
             exit = processCommand(message);
         }
         catch (err) {
+
             if (err instanceof MvbotErrors.MvbotError) {
                 errorMessage(message.channel, err.message);
                 exit = err.code;
