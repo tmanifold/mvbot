@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0-alpha.2] - 2021-05-14
+### Changed
+- Now handling duplicate command-line options
+### Fixed
+- checking parameters for certain options are of numeric type
+- The bot can now copy other rich embeds, however when removing them from the original message, a blank message is left behind and not deleted. Need to find a fix for this.
+- ignoring duplicate command switches
+
 ## [0.2.0-alpha.1] - 2021-05-12
 ### Added
 - `ClientOptions` during the creation of the bot client object
