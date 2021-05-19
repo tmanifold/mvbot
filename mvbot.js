@@ -9,6 +9,10 @@ const MvbotErrors = require('./mvbotError.js');
 const PREFIX = '!mv';
 const MVBOT_EMBED_COLOR = 0x2b1b4a;
 
+//Top.gg API stuff
+const TopGG = require('@top-gg/sdk');
+const tggApi = new TopGG.Api(Auth.topgg_token);
+
 // required permissions for the user to invoke the bot
 const requiredPermsUser = new DiscordJS.Permissions([
     'MANAGE_MESSAGES'
@@ -37,6 +41,13 @@ var bot = new DiscordJS.Client({
         restTimeOffset: 2500,
     }
 });
+
+// set Top.gg stats interval
+setInterval(() => {
+    tggApi.postStats({
+        serverCount: bot.guilds.cache.size
+    });
+}, 3600000); // post every hour
 
 /*
     usage: Display help message and useage information
@@ -568,6 +579,11 @@ bot.on('ready', () => {
         },
         status: 'online'
     }).then(console.log).catch(console.error);
+
+    // init Top.gg stats
+    tggApi.postStats({
+        serverCount: bot.guilds.cache.size
+    });
 
     // console.log('mvbot ready!\n');
 });
