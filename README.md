@@ -8,7 +8,7 @@ If you like mvbot and want to support the project, consider donating:
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/tmanifold?locale.x=en_US)
 
-<a href="https://www.buymeacoffee.com/jawugiti" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/arial-yellow.png" alt="Buy Me A Coffee" style="height: 50px !important;width: 145px !important;" ></a>
+<a href="https://www.buymeacoffee.com/jawugiti"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=jawugiti&button_colour=FFDD00&font_colour=000000&font_family=Arial&outline_colour=000000&coffee_colour=ffffff"></a>
 
 ### Usage
 `!mv -m message [...] -d dest [options]`
