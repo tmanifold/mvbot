@@ -19,7 +19,7 @@ If you like mvbot and want to support the project, consider donating:
 | `-d dest` | Destination channel. |
 
 #### Options
-| Dption | Description |
+| Option | Description |
 |---|---|
 |`-c comment` | A text string explaining why the message was moved. |
 |`-n number` | Moves the specified number of messages, beginning with the one given by `-m message`. Cannot be used with a list of messages. |
@@ -48,5 +48,6 @@ Only users with the *MANAGE_MESSAGES* permission will be able to invoke the bot.
 
 ### Example
 
-![Example command](./img/example2.PNG)
+![Example command](./img/example2.png)
+  
 ![Example result](./img/example.PNG)
