@@ -15,6 +15,21 @@ class MvbotError extends Error {
     }
 }
 
+class DuplicateError extends MvbotError {
+    constructor(msg = 'Duplicate options detected.', ...args) {
+        super(...args);
+
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, MvbotError);
+        }
+
+        this.name = 'DuplicateError';
+        this.timestamp = Date.now();
+        this.code = 2;
+        this.message = msg;
+    }
+}
+
 class PermissionError extends Error {
     constructor(msg = 'Insufficient permissions.', ...args) {
         super(...args);
@@ -137,6 +152,7 @@ class RangeError extends MvbotError {
 
 module.exports = {
     MvbotError,
+    DuplicateError,
     PermissionError,
     PermissionFromError,
     PermissionToError,

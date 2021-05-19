@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0-alpha.3] - 2021-05-14
+### Added
+- bot ignores DMs
+- new error type: `DuplicateError`
+### Changed
+- updated README to reflect changes
+### Fixed
+- a bug that caused the bot to crash if it lacked the required permissions in the source channel
+- a bug that prevented the bot from moving an embed and deleting the original
+
 ## [0.2.0-alpha.2] - 2021-05-14
 ### Fixed
 - checking parameters for certain options are of numeric type
