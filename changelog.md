@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.3] - 2021-08-04
+### Changed
+- modified variable scoping. ideally this will address some memory leaks that are leading to the node process being killed.
+
 ## [0.1.2] - 2020-11-15
 ### Fixed
 - A bug that caused attached images to not be moved correctly

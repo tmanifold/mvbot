@@ -25,7 +25,7 @@ bot.on('message', message => {
 
     if (message.content.startsWith('!mv')) {
 
-        args = message.content.split(' ');
+        let args = message.content.split(' ');
 
         // syntax: !mv <message> <channel> "<reason>"
 
@@ -35,7 +35,7 @@ bot.on('message', message => {
             return;
         }
 
-        var target_message = '';
+        let target_message = '';
 
         if (args[1].search(/^(https:\/\/discord.com\/channels\/)/) >= 0) {
             // The target is given by url
@@ -48,11 +48,11 @@ bot.on('message', message => {
         message.channel.messages.fetch(target_message).then(msg => {
 
             if (!message.member.hasPermission("MANAGE_MESSAGES")) {
-                
+
                 message.channel.send('Sorry, ' + message.member.displayName + '. I can\'t let you do that.');
                 return;
             }
-                        
+
             target_channel = bot.channels.resolve(
                 args[2].replace(/<#/, '')
                         .replace(/>/, '')
@@ -64,14 +64,14 @@ bot.on('message', message => {
                 return;
             }
 
-            var mvstr = '<@' + msg.member + '> | <#' + message.channel + '>\n';
+            let mvstr = '<@' + msg.member + '> | <#' + message.channel + '>\n';
             mvstr += message.createdAt + '\n';
             mvstr += (args[3] == null) ? '' : '*\"' + message.content.split('\"', 2)[1] + '\"*';
             mvstr += ' - <@' + message.member + '>\n\n';
-            var embeds = [];
-            var attachments = [];
+            let embeds = [];
+            let attachments = [];
 
-            
+
             if (msg.embeds.length > 0) {
 
                 msg.embeds.forEach( element => {
@@ -81,7 +81,7 @@ bot.on('message', message => {
 
                 }, err => {
                     console.log(err);
-                });    
+                });
 
             } else {
 
@@ -91,7 +91,7 @@ bot.on('message', message => {
                         console.log(a);
                         attachments.push(a.proxyURL);
                     });
-                }  
+                }
             }
 
             target_channel.send(msg.content == '' ? mvstr :  mvstr + '>>> ' + msg.content, {
