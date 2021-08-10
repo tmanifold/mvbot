@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.0-alpha.4] - 20201-08-09
+### Fixed
+- Now correctly validating message IDs
+
 ## [0.2.0-alpha.3] - 2021-05-14
 ### Added
 - bot ignores DMs

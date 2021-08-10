@@ -88,10 +88,10 @@ function usage(channel) {
                     '`-n number`: Moves the specifed number of messages, beginning with the one given by `-m message`. Cannot be used with a list of messages.'
                     //'-t time        Move all messages within the timeframe, in minutes.' +
             },
-            {
-                name: 'Legacy',
-                value: 'usage: `!mv <message-id> <target channel> ["reason"]`',
-            },
+            // {
+            //     name: 'Legacy',
+            //     value: 'usage: `!mv <message-id> <target channel> ["reason"]`',
+            // },
         ],
         footer: {
             text: 'mvbot v' + pkg_info.version,
@@ -272,6 +272,22 @@ function validatePermissions(user, channel, perms) {
 }
 
 /*
+    validateMessage: Determine if the message is a validID
+    parameters:
+        id: the given messsage ID
+    return: Boolean
+*/
+function validateMessage(id) {
+
+    let t = new Array(65).join('0');
+    //console.log(t, typeof t);
+    let u = DiscordJS.SnowflakeUtil.deconstruct(id).binary;
+    //console.log(u, typeof u);
+
+    return u != t;
+}
+
+/*
     moveMessage: Copy a specified message into the target channel
     parameters:
         msg (Message): Reference to the message object we are moving
@@ -420,6 +436,8 @@ function processCommand (cmd) {
     // loop through messages and convert from url to id
     messages.forEach((message, i) => {
         // if the message is given by URL, extract its ID
+
+
         if (message.search(/^(https:\/\/discord.com\/channels\/)/) >= 0) {
             // The target is given by url
             messages[i] = message.substring(message.lastIndexOf('/') + 1).trim();
@@ -471,19 +489,18 @@ function processCommand (cmd) {
 
         } else { // the bot has the required permissions
 
-            // get a reference to the MessagesManager for the current channel
-            let currentChannelMessages = cmd.channel.messages;
+            // get a reference to the MessageManager for the current channel
+            var currentChannelMessages = cmd.channel.messages;
 
             // Move n number of messages
             if (args.has('-n')) {
 
                 let n = args.get('-n');
+                let m = args.get('-m');
 
-                let theMessage = args.get('-m');
-                //console.log(theMessage);
-                if (theMessage == null) throw new MvbotErrors.MessageError();
+                if (!validateMessage(m)) throw new MvbotErrors.MessageError('The target message doesn\'t exist');
 
-                currentChannelMessages.fetch(args.get('-m'))
+                currentChannelMessages.fetch(m)
                 .then( firstMsg => {
 
                     // move the initial message
@@ -527,7 +544,7 @@ function processCommand (cmd) {
 
                 }, e => {
                     if (e.code == 10008) {
-                        console.error(e);
+                        //console.error(e);
                         throw new MvbotErrors.MessageError('The target message doesn\'t exist!');
                     }
                 });
@@ -537,7 +554,10 @@ function processCommand (cmd) {
             } else { // move the messages specified in the list
 
                 messages.forEach( message => {
-                    //console.log('message: ', message);
+                    // console.log('message: ', message);
+
+                    // verify the message ID is a valid snowflake
+                    if (!validateMessage(message)) throw new MvbotErrors.MessageError('The target message doesn\'t exist!');
 
                     currentChannelMessages.fetch(message)
                     .then( msg => {
@@ -548,7 +568,7 @@ function processCommand (cmd) {
                         moveMessage(msg, targetChannel);
                     })
                     .catch( e => {
-                        console.error(e);
+                        //console.error(e);
                         throw new MvbotErrors.MessageError('The target message doesn\'t exist!');
                     });
                 });
@@ -562,7 +582,9 @@ function processCommand (cmd) {
     .catch(e => { // handle permission errors
 
         //cmd.author.send('Invalid permissions.\n' + e);
-        errorMessage(cmd.channel, e.message);
+        if (e instanceof MvbotErrors.MvbotError)
+            errorMessage(cmd.channel, e.message);
+        //console.error(e);
         //return;
 
     });
@@ -620,6 +642,8 @@ bot.on('message', message => {
                         errorMessage(message.channel, err.message);
                         exit = err.code;
 
+                    } else {
+                        console.error(err);
                     }
                     //console.error(err);
                 }
@@ -640,10 +664,10 @@ bot.on('error', err => {
     //console.error('ERROR HAPPENED', err);
 });
 
-// process.on('unhandledRejection', err => {
+process.on('unhandledRejection', err => {
 
-//     console.error('UNHANDLED PROMISE REJECTION: ', err);
-// });
+    console.error('UNHANDLED PROMISE REJECTION: ', err);
+});
 
 // bot.on('rateLimit', lim => {
 
