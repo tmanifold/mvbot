@@ -1,10 +1,10 @@
+Due to life constraints this project is not actively being worked on and will only be updated when I have the time/energy/motivation to do so.
+
 # mvbot
 
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/tmanifold?locale.x=en_US)
 
 A simple bot to move messages from one discord channel to another.
 
-[Invite mvbot](https://discordapp.com/api/oauth2/authorize?client_id=706927667043237928&permissions=125952&scope=bot)
 
 Syntax:
 ```
