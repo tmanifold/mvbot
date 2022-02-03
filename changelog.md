@@ -1,6 +1,16 @@
 # Changelog
 
-## [0.2.0-alpha.4] - 20201-08-09
+## [0.3.0-alpha] - 2022-02-02
+### Changed
+- began converting to TypeScript
+### Planned
+- Rewrite much of the codebase
+- Tests
+- Support for Intents
+- Support for Threads
+- Use Webhooks to move messages
+
+## [0.2.0-alpha.4] - 2021-08-09
 ### Fixed
 - Now correctly validating message IDs
 
