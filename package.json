@@ -2,17 +2,18 @@
 	"name": "mvbot",
 	"version": "1.0.0-alpha",
 	"description": "Move posts from one discord channel to another",
-	"main": "mvbot.js",
+	"main": "dist/index.js",
 	"author": "Tyler Manifold",
 	"dependencies": {
 		"@top-gg/sdk": "^3.1.1",
-		"@types/node": "^17.0.14",
+		"@types/node": "^17.0.15",
+		"node": "^17.4.0",
 		"discord.js": "^13.6.0",
 		"reflect-metadata": "^0.1.13"
 	},
 	"scripts": {
-		"start": "node src/mvbot.js",
-		"start-ts": "ts-node src/mvbot.ts",
+		"start": "node dist/index.js",
+		"start-ts": "ts-node src/index.ts",
 		"build": "tsc -p tsconfig.json",
 		"watch": "tsc -p tsconfig.json -w",
 		"test": "mocha -r ts-node/register \"tests/**/*.spec.ts\""

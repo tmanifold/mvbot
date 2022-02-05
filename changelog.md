@@ -1,5 +1,16 @@
 # Changelog
 
+# [0.3.0-alpha.1] - 2022-02-04
+### Added
+- index.ts
+- mvbot.ts
+- mvbotUtil.ts
+- mvbotError.ts
+### Changed
+- moved most functional bot code to Mvbot class
+
+
+
 ## [0.3.0-alpha] - 2022-02-02
 ### Changed
 - began converting to TypeScript

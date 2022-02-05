@@ -7,7 +7,7 @@
     //     "es6",
     //     "dom"
     //   ],
-      "sourceMap": true,
+    //  "sourceMap": true,
       "types": [
         // add node as an option
         "node",
@@ -19,7 +19,9 @@
       ],
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
-      "resolveJsonModule": true
+      "resolveJsonModule": true,
+      "outDir": "dist"
+
     },
     "exclude": [
       "node_modules"
