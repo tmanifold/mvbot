@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Due to life constraints this project is not actively being worked on and will only be updated when I have the time/energy/motivation to do so.
 
 # mvbot
@@ -31,3 +32,8 @@ The three arguments are as follows:
   
   ![Example](./img/example.PNG)
 
+=======
+# mvbot
+
+A simple bot to move messages from one channel to another. This is a WIP and is being rewritten from scratch in TypeScript.
+>>>>>>> dev
