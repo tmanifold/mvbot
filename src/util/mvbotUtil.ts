@@ -1,6 +1,6 @@
 import * as Discord from 'discord.js';
-import { MvbotChannel } from '../mvbot';
-const { MvbotError } = require('../error/mvbotError');
+// import { MvbotError } from '../error/mvbotError';
+const MvbotError = require('../error/mvbotError');
 /*
     validatePermissions: Verify the specified user has the required
                             permissions for a given channel.
@@ -16,7 +16,7 @@ export const validatePermissions = (
     perms: Discord.PermissionResolvable
     ) => {
     
-        if (user.permissionsIn(channel).missing(perms, true)) throw new MvbotError.MvbotError();
+        if (!user.permissionsIn(channel).has(perms, true)) throw new MvbotError.MvbotError();
     // return user.permissionsIn(channel).has(perms, true);
 };
 

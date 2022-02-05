@@ -1,4 +1,5 @@
 
+import { match } from 'assert';
 import * as Discord from 'discord.js';
 import * as MvbotUtil from './util/mvbotUtil';
 
@@ -27,6 +28,7 @@ const MVBOT_PERMS = {
 // Initialize bot and ClientOptions
 // https://discord.js.org/#/docs/main/stable/typedef/ClientOptions
 const MVBOT_INTENTS = new Discord.Intents([
+    Discord.Intents.FLAGS.GUILDS,
     Discord.Intents.FLAGS.GUILD_MEMBERS,
     Discord.Intents.FLAGS.GUILD_MESSAGES,
     Discord.Intents.FLAGS.GUILD_WEBHOOKS
@@ -43,6 +45,7 @@ class Mvbot {
         this.version = pkg_info.version;
 
         this.initClient();
+        console.log('client initialized');
     }
 
     start(token) {
@@ -50,19 +53,16 @@ class Mvbot {
     }
 
     initClient() {
-        this.#client = new Discord.Client(Object.assign({intents: MVBOT_INTENTS}));
+        this.#client = new Discord.Client({ intents: MVBOT_INTENTS });
 
         this.#client.once('ready', async () => {
             try {
-
-                await this.#client.user.setPresence(
-                    Object.assign({
-                        activity: {
-                            name: 'ver. ' + pkg_info.version
-                        },
-                        status: 'online'
-                    })
-                );
+                this.#client.user.setPresence({
+                    activities: [
+                        { name: 'ver. ' + this.version }
+                    ],
+                    status: 'online'
+                });
         
             } catch (error) {
                 console.log(error);
@@ -71,7 +71,7 @@ class Mvbot {
             console.log('mvbot client ready!');
         });
 
-        this.#client.on('message', async (message:Discord.Message) => {
+        this.#client.on('messageCreate', async (message: Discord.Message) => {
             // ignore bots
             if (message.author.bot) return;
             // ignore DMs
@@ -81,7 +81,6 @@ class Mvbot {
 
             // verify prefix
             if (message.content.startsWith(`${MVBOT_PREFIX}`)) {
-
 
                 // get the message content and user information
                 let content: string = message.content;
@@ -96,14 +95,14 @@ class Mvbot {
                     MvbotUtil.validatePermissions(self, sourceChannel, MVBOT_PERMS.BOT);
                     MvbotUtil.validatePermissions(user, sourceChannel, MVBOT_PERMS.USER);
 
-                    
                     // parse the command string
-                    let cmd = message.content.split(' ');
+                    let cmd = message.content
+                                .split(' ')
+                                .filter(e => e != '')
+                                .map(e => e.trim());
                     console.log(cmd);
                     let targetChannel: string = 'test_channel';
                     
-
-
                 } catch (error) {
                     console.log(error);
                 }
@@ -119,52 +118,52 @@ class Mvbot {
     }
 
     usage(channel: MvbotChannel) {
-        channel.send(
-            Object.assign(
+        channel.send({
+            embeds: [
                 {
-                    embed: {
-                        color: MVBOT_EMBED_COLOR,
-                        author: {
-                            name: this.#client.user.username,
-                            icon_url: this.#client.user.displayAvatarURL(),
+                    color: MVBOT_EMBED_COLOR,
+                    author: {
+                        name: this.#client.user.username,
+                        iconURL: this.#client.user.displayAvatarURL(),
+                    },
+                    description: '[GitHub](https://github.com/tmanifold/mvbot) | [Top.gg](https://top.gg/bot/706927667043237928)',
+                    fields: [
+                        {
+                        // switches:
+                        //     -m      the message id(s) to be moved
+                        //     -d      the destination channel
+                        //     -c      a comment explaining why the message was moved (optional)
+                        //     -n      the number of messages to be moved
+                        //     -t      the timespan in minutes
+                            name: '\u200b',
+                            value: 'usage: `!mv -m message [...] -d dest [options]`',
                         },
-                        description: '[GitHub](https://github.com/tmanifold/mvbot) | [Top.gg](https://top.gg/bot/706927667043237928)',
-                        fields: [
-                            {
-                            // switches:
-                            //     -m      the message id(s) to be moved
-                            //     -d      the destination channel
-                            //     -c      a comment explaining why the message was moved (optional)
-                            //     -n      the number of messages to be moved
-                            //     -t      the timespan in minutes
-                                name: '\u200b',
-                                value: 'usage: `!mv -m message [...] -d dest [options]`',
-                            },
-                            {
-                                name: 'Info:',
-                                value:
-                                    '`-m message`: One or more message IDs or URLs, separated by space.\n' +
-                                    '`-d dest`: Destination channel.'
-                            },
-                            {
-                                name: 'Options',
-                                value:
-                                    '`-c comment`: A text string explaining why the message was moved.\n' +
-                                    '`-n number`: Moves the specifed number of messages, beginning with the one given by `-m message`. Cannot be used with a list of messages.'
-                                    //'-t time        Move all messages within the timeframe, in minutes.' +
-                            },
-                            // {
-                            //     name: 'Legacy',
-                            //     value: 'usage: `!mv <message-id> <target channel> ["reason"]`',
-                            // },
-                        ],
-                        footer: {
-                            text: 'mvbot v' + this.version,
+                        {
+                            name: 'Info:',
+                            value:
+                                '`-m message`: One or more message IDs or URLs, separated by space.\n' +
+                                '`-d dest`: Destination channel.'
                         },
-                    }
+                        {
+                            name: 'Options',
+                            value:
+                                '`-c comment`: A text string explaining why the message was moved.\n' +
+                                '`-n number`: Moves the specifed number of messages, beginning with the one given by `-m message`. Cannot be used with a list of messages.'
+                                //'-t time        Move all messages within the timeframe, in minutes.' +
+                        },
+                        // {
+                        //     name: 'Legacy',
+                        //     value: 'usage: `!mv <message-id> <target channel> ["reason"]`',
+                        // },
+                    ],
+                    footer: {
+                        text: 'mvbot -v' + this.version,
+                    },
                 }
-            )
-        );
+            ]
+        });
+
+       // channel.send({ embeds: e });
     }
 
     move(src: MvbotChannel, dest: MvbotChannel) {

@@ -1,13 +1,13 @@
 {
 	"name": "mvbot",
-	"version": "1.0.0-alpha",
+	"version": "0.3.0-alpha",
 	"description": "Move posts from one discord channel to another",
 	"main": "dist/index.js",
 	"author": "Tyler Manifold",
 	"dependencies": {
-		"@top-gg/sdk": "^3.1.1",
-		"@types/node": "^17.0.15",
 		"node": "^17.4.0",
+		"@types/node": "^17.0.15",
+		"@top-gg/sdk": "^3.1.1",
 		"discord.js": "^13.6.0",
 		"reflect-metadata": "^0.1.13"
 	},

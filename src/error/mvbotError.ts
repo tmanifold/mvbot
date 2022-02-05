@@ -4,31 +4,29 @@ import { Snowflake, SnowflakeUtil, UserResolvable } from "discord.js";
 import { MvbotChannel } from "../mvbot";
 // based heavily on DJSError
 
-// types of errors
-// CommandError: issues with command formatting
-// PermissionError: 
+// Types of errors
+// syntax
+// access
+// reference
+// range
 
-const MvbotErrorMessages = {
+export const MvbotErrorMessages = {
     
-    // command errors
+    // syntax errors
     DUPLICATE_OPTIONS: "Duplicate options detected.",
     INCOMPATIBLE_SWITCHES: "Two or more incompatible switches detected.",
     MESSAGE_NOT_SPECIFIED: "A message or range of messages must be given.",
 
-
-    // permission errors
+    // Access errors
     INVALID_PERMISSIONS: (u: UserResolvable, t: MvbotChannel) => `Insufficient permissions for ${u} in ${t}$`,
 
-    // 
+    // Reference Errors
     CHANNEL_NOT_FOUND: `The specified channel does not exist.`,
     MESSAGE_NOT_FOUND: (id: Snowflake | string) => `The specified message ${id} does not exist.`
 
-}
+};
 
-//
-
-
-class MvbotError extends Error {
+export class MvbotError extends Error {
 
     timestamp: number;
     code: number;
@@ -36,9 +34,7 @@ class MvbotError extends Error {
     constructor(msg = 'An error occurred while moving the message', ...args) {
         super(...args);
 
-        if (Error.captureStackTrace) {
-            Error.captureStackTrace(this, MvbotError);
-        }
+        if (Error.captureStackTrace) { Error.captureStackTrace(this, MvbotError); }
 
         this.name = 'MvbotError';
         this.timestamp = Date.now();
@@ -184,6 +180,7 @@ class MvbotError extends Error {
 
 module.exports = {
     MvbotError,
+    MvbotErrorMessages,
     // DuplicateError,
     // PermissionError,
     // PermissionFromError,
@@ -192,5 +189,5 @@ module.exports = {
     // DestinationError,
     // MessageError,
     TypeError,
-    RangeError
-}
+    RangeError,
+};
