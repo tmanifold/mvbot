@@ -1,5 +1,11 @@
 # Changelog
 
+# [0.3.0-alpha.2] - 2022-02-08
+### Addeed
+- MvbotCommand class
+### Changed
+- now using [arg](https://github.com/vercel/arg#readme) for arguments
+
 # [0.3.0-alpha.1] - 2022-02-04
 ### Added
 - index.ts
@@ -8,8 +14,6 @@
 - mvbotError.ts
 ### Changed
 - moved most functional bot code to Mvbot class
-
-
 
 ## [0.3.0-alpha] - 2022-02-02
 ### Changed

@@ -1,10 +1,13 @@
 
-import { match } from 'assert';
+import { APIVoiceRegion } from 'discord-api-types';
 import * as Discord from 'discord.js';
+import { ClientRequestArgs } from 'http';
+import { stringify } from 'querystring';
 import * as MvbotUtil from './util/mvbotUtil';
 
 const Auth = require('../.secret.json');
 const pkg_info = require('../package.json');
+const arg = require('arg');
 
 const MvbotError = require('./error/mvbotError');
 
@@ -34,25 +37,46 @@ const MVBOT_INTENTS = new Discord.Intents([
     Discord.Intents.FLAGS.GUILD_WEBHOOKS
 ]);
 
-export type MvbotChannel = Discord.TextChannel | Discord.NewsChannel;
+export type MvbotChannel = Discord.GuildTextBasedChannel;
+
+// switches:
+//     -m      the message id(s) to be moved
+//     -d      the destination channel
+//     -c      a comment explaining why the message was moved (optional)
+//     -n      the number of messages to be moved
+//     -t      the timespan in minutes
+
+
+class MvbotCommand {
+
+    #source: MvbotChannel;
+    #target: MvbotChannel;
+    args: object;
+
+    constructor(tokens: string[]) {
+
+        this.args = arg(
+            {
+                "-m": [String],   // specifies message(s) to be moved
+                "-d": String,   // destination channel id
+                "-c": String,   // comment (optional)
+                "-n": Number,   // number of messages to be moved
+                "-t": Number
+            }, {
+                argv: tokens
+            }
+        );
+    }
+}
 
 class Mvbot {
     version: number;
     permissions: Discord.Permissions;
     #client: Discord.Client;
+    #queue: Array<Discord.Message>;
 
     constructor() {
         this.version = pkg_info.version;
-
-        this.initClient();
-        console.log('client initialized');
-    }
-
-    start(token) {
-        this.#client.login(token).catch(console.error);
-    }
-
-    initClient() {
         this.#client = new Discord.Client({ intents: MVBOT_INTENTS });
 
         this.#client.once('ready', async () => {
@@ -63,46 +87,62 @@ class Mvbot {
                     ],
                     status: 'online'
                 });
+
+                console.log('mvbot ready!', this.#client.user);
         
             } catch (error) {
                 console.log(error);
-            }
-        
-            console.log('mvbot client ready!');
+            }        
         });
+    }
 
+    // register a callback for the given event
+    register(event: string, callback: (...args: any[]) => void) {
+        this.#client.on(event, callback);
+    }
+    
+    start(token) {
+        this.initClient();
+        this.#client.login(token).catch(console.error);
+    }
+
+    test(token) {
+        this.initClient();
+    }
+
+    async initClient() {
         this.#client.on('messageCreate', async (message: Discord.Message) => {
-            // ignore bots
-            if (message.author.bot) return;
-            // ignore DMs
-            if (message.channel.type == 'DM') return;
-            // ignore webhooks
-            if (message.webhookId) return;
-
-            // verify prefix
-            if (message.content.startsWith(`${MVBOT_PREFIX}`)) {
-
+            
+            if (this.isMvbotMessage(message) === true) {
+                
                 // get the message content and user information
-                let content: string = message.content;
-                let user: Discord.GuildMember = message.member;
-                let sourceChannel: Discord.TextBasedChannel = message.channel;
-                let guild: Discord.Guild = sourceChannel.guild;
+                let source  = message.channel as MvbotChannel;
+                let content = message.content;
+                let member  = message.member;
+                let guild   = message.guild;
+
+                if (content.trim() === MVBOT_PREFIX) {
+                    this.usage(source);
+                }
 
                 try {
-                    // validate permissions for bot and invoking user
+                    // get a reference to the bot as a guild member
                     let self: Discord.GuildMember = await guild.members.fetch(this.#client.user);
+
+                    // validate permissions for bot and invoking user
                     // validate perms for source channel
-                    MvbotUtil.validatePermissions(self, sourceChannel, MVBOT_PERMS.BOT);
-                    MvbotUtil.validatePermissions(user, sourceChannel, MVBOT_PERMS.USER);
+                    MvbotUtil.validatePermissions(self, source, MVBOT_PERMS.BOT);
+                    MvbotUtil.validatePermissions(member, source, MVBOT_PERMS.USER);
 
                     // parse the command string
-                    let cmd = message.content
-                                .split(' ')
-                                .filter(e => e != '')
-                                .map(e => e.trim());
-                    console.log(cmd);
-                    let targetChannel: string = 'test_channel';
+                    const tokens = this.tokenizeCommand(message.content);
+                    console.log(tokens);
+                    const command = new MvbotCommand(tokens);
+                    console.log(command.args);
+
+                    // need to determine options, target message(s) and channel.
                     
+
                 } catch (error) {
                     console.log(error);
                 }
@@ -114,7 +154,30 @@ class Mvbot {
                 // delete the webhook
 
             }
+
         });
+    }
+
+    tokenizeCommand(message: string): Array<string> {
+        return message
+                    .split(' ')
+                    .filter(e => e != '')
+                    .map(e => e.trim());
+    }
+
+    validateCommand(cmd: string) {
+
+    }
+
+    isMvbotMessage(message: Discord.Message): boolean {
+        
+        if (message.author.bot // ignore bots
+            || message.channel.type === 'DM' // ignore DMs
+            || message.webhookId // ignore webhooks
+            || !message.content.startsWith(`${MVBOT_PREFIX}`) // command doesn't with MVBOT_PREFIX
+            ) return false;
+
+        return true;
     }
 
     usage(channel: MvbotChannel) {
