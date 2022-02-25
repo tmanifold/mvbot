@@ -66,25 +66,26 @@ class MvbotCommand {
     }
 }
 
-class Mvbot {
+class Mvbot extends Discord.Client {
     version: number;
     permissions: Discord.Permissions;
-    #client: Discord.Client;
+    // #client: Discord.Client;
 
     constructor() {
+        super({ intents: MVBOT_INTENTS });
         this.version = pkg_info.version;
-        this.#client = new Discord.Client({ intents: MVBOT_INTENTS });
+        // this.#client = new Discord.Client({ intents: MVBOT_INTENTS });
 
-        this.#client.once('ready', async () => {
+        this.once('ready', async () => {
             try {
-                this.#client.user.setPresence({
+                this.user.setPresence({
                     activities: [
                         { name: 'ver. ' + this.version }
                     ],
                     status: 'online'
                 });
 
-                console.log('mvbot ready!', this.#client.user);
+                console.log('mvbot ready!', this.user);
         
             } catch (error) {
                 console.log(error);
@@ -92,28 +93,22 @@ class Mvbot {
         });
     }
 
-    
-    public get client() : Discord.Client {
-        return this.#client;
-    }
-    
-
     // register a callback for the given event
     register(event: string, callback: (...args: any[]) => void) {
-        this.#client.on(event, callback);
+        this.on(event, callback);
     }
     
     async start(token: string) : Promise<string> {
-        this.initClient();
-        return this.#client.login(token);
+        this.init();
+        return this.login(token);
     }
 
     stop() {
-        this.#client.destroy();
+        this.destroy();
     }
 
-    async initClient() {
-        this.#client.on('messageCreate', async (message: Discord.Message) => {
+    async init() {
+        this.on('messageCreate', async (message: Discord.Message) => {
             
             if (this.isMvbotMessage(message) === true) {
                 
@@ -129,7 +124,7 @@ class Mvbot {
 
                 try {
                     // get a reference to the bot as a guild member
-                    let self: Discord.GuildMember = await guild.members.fetch(this.#client.user);
+                    let self: Discord.GuildMember = await guild.members.fetch(this.user);
 
                     // validate permissions for bot and invoking user
                     // validate perms for source channel
@@ -188,8 +183,8 @@ class Mvbot {
                 {
                     color: MVBOT_EMBED_COLOR,
                     author: {
-                        name: this.#client.user.username,
-                        iconURL: this.#client.user.displayAvatarURL(),
+                        name: this.user.username,
+                        iconURL: this.user.displayAvatarURL(),
                     },
                     description: '[GitHub](https://github.com/tmanifold/mvbot) | [Top.gg](https://top.gg/bot/706927667043237928)',
                     fields: [
