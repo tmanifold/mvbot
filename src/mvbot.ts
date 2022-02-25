@@ -50,7 +50,11 @@ class MvbotCommand {
     #target: MvbotChannel;
     args: object;
 
-    constructor(tokens: string[]) {
+    constructor(cmd: string) {
+        let tokens = cmd
+                        .split(' ')
+                        .filter(e => e != '')
+                        .map(e => e.trim());
 
         this.args = arg(
             {
@@ -132,9 +136,9 @@ class Mvbot extends Discord.Client {
                     MvbotUtil.validatePermissions(member, source, MVBOT_PERMS.USER);
 
                     // parse the command string
-                    const tokens = this.tokenizeCommand(message.content);
-                    console.log(tokens);
-                    const command = new MvbotCommand(tokens);
+                    // const tokens = this.tokenizeCommand(message.content);
+                    // console.log(tokens);
+                    const command = new MvbotCommand(message.content);
                     console.log(command.args);
 
                     // need to determine options, target message(s) and channel.
@@ -167,9 +171,9 @@ class Mvbot extends Discord.Client {
     }
 
     isMvbotMessage(message: Discord.Message): boolean {
-        
-        if (message.author.bot // ignore bots
-            || message.channel.type === 'DM' // ignore DMs
+        // TODO: Modify this for easier testing
+        if (//message.author.bot // ignore bots
+            /*||*/ message.channel.type === 'DM' // ignore DMs
             || message.webhookId // ignore webhooks
             || !message.content.startsWith(`${MVBOT_PREFIX}`) // command doesn't begin with MVBOT_PREFIX
             ) return false;
