@@ -8,22 +8,24 @@
     //     "dom"
     //   ],
     //  "sourceMap": true,
+    "typeRoots": [
+      // add path to @types
+      "node_modules/@types"
+    ],
       "types": [
         // add node as an option
         "node",
-        "reflect-metadata"
-      ],
-      "typeRoots": [
-        // add path to @types
-        "node_modules/@types"
+        "jest"
+        // "reflect-metadata"
       ],
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
       "resolveJsonModule": true,
-      "outDir": "dist"
-
+      "rootDir": "src",
+      "outDir": "dist",
     },
     "exclude": [
       "node_modules"
     ]
-  }
+}
+

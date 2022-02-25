@@ -1,20 +1,37 @@
-
-import assert = require('assert');
 import * as Discord from 'discord.js';
+// import * as Mvbot from '../mvbot';
+import { MvbotChannel } from '../mvbot';
 
-const Mvbot = require('./mvbot');
-const Auth  = require('../.secret.json');
+(async () => {
 
-const testGuildId = require('config.json');
+    // import assert = require('assert');    
 
-const testGetGuild = async (client: Discord.Client) => {
-    let guild: Discord.Guild = await client.guilds.fetch(testGuildId);
-    console.log(testGuildId, guild);
-};
-
-function testMessageSplit(client: Discord.Client) {
+    const Mvbot = require('../mvbot');
     
-}
+    const test_cfg = require('./config.json');
+    
+    const bot = new Mvbot.Mvbot();
+    // bot.start(Mvbot.Auth.token.dev);
+    
+    const guild: Discord.Guild = bot.client.guilds.fetch(test_cfg.guild);
+    // const channel: Discord.GuildTextBasedChannel = await guild.channels.fetch(test_cfg.channel) as Discord.GuildTextBasedChannel;
 
-const bot = new Mvbot.Mvbot();
-bot.start(Auth.token.dev);
+    beforeAll(() => {
+        jest.setTimeout(10000);
+    });
+
+    test('Login', () => {
+        // expect.assertions(1);
+        //return expect(bot.start(Mvbot.Auth.token.dev)).resolves.toBe(Mvbot.Auth.token.dev);
+        return bot.start(Mvbot.Auth.token.dev);
+    }); 
+    
+    // test('Send message', () => {
+    //     channel.send('!mv test');
+    // });
+
+    afterAll(() => {
+        bot.stop();
+    });
+
+})();

@@ -1,11 +1,8 @@
 
-import { APIVoiceRegion } from 'discord-api-types';
 import * as Discord from 'discord.js';
-import { ClientRequestArgs } from 'http';
-import { stringify } from 'querystring';
 import * as MvbotUtil from './util/mvbotUtil';
 
-const Auth = require('../.secret.json');
+const Auth = require('./.secret.json');
 const pkg_info = require('../package.json');
 const arg = require('arg');
 
@@ -57,7 +54,7 @@ class MvbotCommand {
 
         this.args = arg(
             {
-                "-m": [String],   // specifies message(s) to be moved
+                "-m": String,   // specifies message(s) to be moved
                 "-d": String,   // destination channel id
                 "-c": String,   // comment (optional)
                 "-n": Number,   // number of messages to be moved
@@ -73,7 +70,6 @@ class Mvbot {
     version: number;
     permissions: Discord.Permissions;
     #client: Discord.Client;
-    #queue: Array<Discord.Message>;
 
     constructor() {
         this.version = pkg_info.version;
@@ -96,18 +92,24 @@ class Mvbot {
         });
     }
 
+    
+    public get client() : Discord.Client {
+        return this.#client;
+    }
+    
+
     // register a callback for the given event
     register(event: string, callback: (...args: any[]) => void) {
         this.#client.on(event, callback);
     }
     
-    start(token) {
+    async start(token: string) : Promise<string> {
         this.initClient();
-        this.#client.login(token).catch(console.error);
+        return this.#client.login(token);
     }
 
-    test(token) {
-        this.initClient();
+    stop() {
+        this.#client.destroy();
     }
 
     async initClient() {
@@ -174,7 +176,7 @@ class Mvbot {
         if (message.author.bot // ignore bots
             || message.channel.type === 'DM' // ignore DMs
             || message.webhookId // ignore webhooks
-            || !message.content.startsWith(`${MVBOT_PREFIX}`) // command doesn't with MVBOT_PREFIX
+            || !message.content.startsWith(`${MVBOT_PREFIX}`) // command doesn't begin with MVBOT_PREFIX
             ) return false;
 
         return true;
@@ -244,6 +246,7 @@ class Mvbot {
 
 module.exports = {
     Mvbot,
+    MvbotCommand,
     Auth,
     pkg_info,
     MvbotError,
