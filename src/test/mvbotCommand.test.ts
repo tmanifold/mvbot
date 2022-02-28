@@ -1,14 +1,11 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 
 import * as Discord from 'discord.js';
-const Mvbot = require('../mvbot');
+import { MvbotCommand } from '../mvbot';
 
-(async () => {
+const cmd_str = '!mv -m 946858024151175188 -d <#706930498815131803>';
+const command = new MvbotCommand(cmd_str);
 
-    const cmd_str = '!mv -m 946858024151175188 -d <#706930498815131803>';
-    const command = new Mvbot.MvbotCommand(cmd_str);
+test.skip('foo', () => {
 
-    test.skip('foo', () => {
-
-    });
-
-})();
+});

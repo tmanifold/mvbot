@@ -1,7 +1,7 @@
 //import * as Discord from 'discord.js';
-const Mvbot = require('./mvbot');
-const Auth  = require('./.secret.json');
+import { Mvbot } from './mvbot.js';
+import Auth = require('./.secret.json');
 
-const bot = new Mvbot.Mvbot();
+const bot = new Mvbot();
 bot.start(Auth.token.dev);
 

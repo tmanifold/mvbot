@@ -1,12 +1,13 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 
 import * as Discord from 'discord.js';
 import * as MvbotUtil from './util/mvbotUtil';
 
-const Auth = require('./.secret.json');
-const pkg_info = require('../package.json');
-const arg = require('arg');
+import Auth = require('./.secret.json');
+import pkg_info = require('../package.json');
+import arg = require('arg');
 
-const MvbotError = require('./error/mvbotError');
+import MvbotError = require('./error/mvbotError');
 
 const MVBOT_PREFIX = '!mv';
 const MVBOT_EMBED_COLOR = 0x2b1b4a;
@@ -44,15 +45,14 @@ export type MvbotChannel = Discord.GuildTextBasedChannel;
 //     -t      the timespan in minutes
 
 
-class MvbotCommand {
+export class MvbotCommand {
 
     #source: MvbotChannel;
     #target: MvbotChannel;
     args: object;
 
     constructor(cmd: string) {
-        let tokens = cmd
-                        .split(' ')
+        const tokens = cmd.split(' ')
                         .filter(e => e != '')
                         .map(e => e.trim());
 
@@ -70,8 +70,8 @@ class MvbotCommand {
     }
 }
 
-class Mvbot extends Discord.Client {
-    version: number;
+export class Mvbot extends Discord.Client {
+    version: string;
     permissions: Discord.Permissions;
     // #client: Discord.Client;
 
@@ -117,10 +117,10 @@ class Mvbot extends Discord.Client {
             if (this.isMvbotMessage(message) === true) {
                 
                 // get the message content and user information
-                let source  = message.channel as MvbotChannel;
-                let content = message.content;
-                let member  = message.member;
-                let guild   = message.guild;
+                const source  = message.channel as MvbotChannel;
+                const content = message.content;
+                const member  = message.member;
+                const guild   = message.guild;
 
                 if (content.trim() === MVBOT_PREFIX) {
                     this.usage(source);
@@ -128,7 +128,7 @@ class Mvbot extends Discord.Client {
 
                 try {
                     // get a reference to the bot as a guild member
-                    let self: Discord.GuildMember = await guild.members.fetch(this.user);
+                    const self: Discord.GuildMember = await guild.members.fetch(this.user);
 
                     // validate permissions for bot and invoking user
                     // validate perms for source channel
@@ -161,9 +161,9 @@ class Mvbot extends Discord.Client {
 
     tokenizeCommand(message: string): Array<string> {
         return message
-                    .split(' ')
-                    .filter(e => e != '')
-                    .map(e => e.trim());
+                .split(' ')
+                .filter(e => e != '')
+                .map(e => e.trim());
     }
 
     validateCommand(cmd: string) {
@@ -172,7 +172,8 @@ class Mvbot extends Discord.Client {
 
     isMvbotMessage(message: Discord.Message): boolean {
         // TODO: Modify this for easier testing
-        if (//message.author.bot // ignore bots
+        if (
+            //message.author.bot // ignore bots
             /*||*/ message.channel.type === 'DM' // ignore DMs
             || message.webhookId // ignore webhooks
             || !message.content.startsWith(`${MVBOT_PREFIX}`) // command doesn't begin with MVBOT_PREFIX

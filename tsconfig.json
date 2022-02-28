@@ -21,10 +21,11 @@
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true,
       "resolveJsonModule": true,
-      "rootDir": "src",
+      // "rootDir": "src",
       "outDir": "dist",
     },
     "exclude": [
+      "dist",
       "node_modules"
     ]
 }
